@@ -1,0 +1,158 @@
+/*
+    Cabe recalcar que es solo una plantilla a medias 
+    por lo que se pueden agregar o quitar campos según 
+    se necesite.
+*/
+
+-- Definición de Tipos de Trámite
+CREATE TYPE tipo_tramite_dt AS ENUM (
+    'LRE', 
+    'F30', 
+    'F30-1', 
+    'Contrato de Trabajo', 
+    'Anexo de Contrato', 
+    'Carta de Aviso', 
+    'Finiquito', 
+    'Comprobante Vacaciones', 
+    'Pacto Horas Extra', 
+    'Pacto Teletrabajo', 
+    'Reglamento Interno', 
+    'Comité Paritario', 
+    'Inclusión Laboral', 
+    'Registro Asistencia'
+);
+
+-- Definición de Estados de Gestión
+CREATE TYPE estado_tramite_dt AS ENUM (
+    'Pendiente', 
+    'En Firma', 
+    'Firmado', 
+    'Cargado', 
+    'Rechazado', 
+    'Atrasado', 
+    'No Aplica'
+);
+
+
+CREATE TABLE declaracion_dt (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id UUID NOT NULL REFERENCES empresa(id) ON DELETE CASCADE,
+    
+    -- Tipo de tramite para elegir el proceso legal correcto.
+    tipo tipo_tramite_dt NOT NULL,
+
+    -- Por defecto 'Pendiente' para que el CRM lo detecte como "por hacer".
+    estado estado_tramite_dt DEFAULT 'Pendiente',
+    
+    -- Utilizado para agrupar por mes/año en el CRM. Es el "periodo" que se declara, no la fecha de carga.
+    -- También ayuda a calcular automáticamente el estado 'Atrasado' o por expirar con un TRIGGER 
+    -- compare con la fecha_vencimiento.
+    periodo DATE NOT NULL,
+    
+    -- Fecha límite legal. Vital para que el TRIGGER marque automáticamente el estado 'Atrasado' o por expirar.
+    fecha_vencimiento DATE NOT NULL,
+
+    -- Fecha en que se cargó el documento al sistema y el numero de folio
+    -- Es el número oficial que entrega el portal Mi DT al finalizar un trámite. 
+    fecha_carga TIMESTAMP WITH TIME ZONE,     
+    folio_comprobante VARCHAR(100),
+
+    -- Para descargas 
+    url_comprobante TEXT,
+
+    -- Sugerido para dejar constancia de cualquier detalle
+    -- o incidente que se quiera registrar sobre ese trámite específico.
+    -- Como un atrasado, etc.
+    observaciones TEXT,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Utilizado para identificar DT's faltantes
+-- DT's faltantes = Requisitos de la empresa - Declaraciones del mes
+CREATE TABLE requisitos_dt_empresa (
+    empresa_id UUID REFERENCES empresa(id) ON DELETE CASCADE,
+    tipo tipo_tramite_dt NOT NULL,
+    PRIMARY KEY (empresa_id, tipo)
+);
+
+CREATE INDEX idx_dt_empresa_periodo ON declaracion_dt (empresa_id, periodo DESC);
+CREATE INDEX idx_dt_estado ON declaracion_dt (estado);
+
+/* TRIGGER para prevenir duplicados de trámites por periodo. */
+CREATE OR REPLACE FUNCTION fn_prevenir_duplicados_dt()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Solo se valida para los tramites que tienen restricción de uno por periodo.
+    IF NEW.tipo IN ('LRE', 'F30', 'F30-1') THEN
+        IF EXISTS (
+            SELECT 1 FROM declaracion_dt 
+            WHERE empresa_id = NEW.empresa_id 
+              AND tipo = NEW.tipo 
+              AND periodo = NEW.periodo
+              AND id != NEW.id
+        ) THEN
+            RAISE EXCEPTION 'Ya existe un trámite de tipo % para este periodo en esta empresa.', NEW.tipo;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_prevenir_duplicados_dt
+BEFORE INSERT OR UPDATE ON declaracion_dt
+FOR EACH ROW EXECUTE PROCEDURE fn_prevenir_duplicados_dt();
+
+CREATE OR REPLACE FUNCTION fn_gestionar_estado_atrasado_dt()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si el trámite no está en un estado final ('Cargado' o 'No Aplica')
+    -- y ya pasó la fecha límite, se sentencia como 'Atrasado'.
+    IF (NEW.estado NOT IN ('Cargado', 'No Aplica') AND NEW.fecha_vencimiento < CURRENT_DATE) THEN
+        NEW.estado = 'Atrasado';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_verificar_atraso_dt
+BEFORE INSERT OR UPDATE ON declaracion_dt
+FOR EACH ROW EXECUTE PROCEDURE fn_gestionar_estado_atrasado_dt();
+
+CREATE TRIGGER tr_update_declaracion_dt 
+BEFORE UPDATE ON declaracion_dt 
+FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+/* ----------------------------------------------- */
+-- Recomendaciones de gemini, revisar --
+
+/*
+-- La Vista de Contadores (Para el CRM)
+CREATE OR REPLACE VIEW vista_resumen_dt AS
+SELECT 
+    empresa_id,
+    -- Conteo del mes actual (según el periodo)
+    COUNT(*) FILTER (WHERE date_trunc('month', periodo) = date_trunc('month', CURRENT_DATE)) as total_mes,
+    -- Conteo del año actual
+    COUNT(*) FILTER (WHERE date_part('year', periodo) = date_part('year', CURRENT_DATE)) as total_anual,
+    -- Alertas críticas para badges o notificaciones
+    COUNT(*) FILTER (WHERE estado = 'Atrasado') as criticos_atrasados,
+    COUNT(*) FILTER (WHERE estado = 'En Firma') as pendientes_firma
+FROM declaracion_dt
+GROUP BY empresa_id;
+*/
+
+/*
+-- El Detector de Faltantes (Para el CRM)
+CREATE OR REPLACE VIEW vista_dt_faltantes AS
+SELECT 
+    r.empresa_id,
+    r.tipo as tramite_faltante,
+    'Debe generarse para el periodo actual' as alerta
+FROM requisitos_dt_empresa r
+LEFT JOIN declaracion_dt d ON r.empresa_id = d.empresa_id 
+    AND r.tipo = d.tipo 
+    AND date_trunc('month', d.periodo) = date_trunc('month', CURRENT_DATE)
+WHERE d.id IS NULL; -- Si es NULL, es porque el requisito no tiene una declaración creada este mes.
+*/

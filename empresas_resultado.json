@@ -1,0 +1,756 @@
+[
+  {
+    "input": "77583495-1",
+    "empresa": {
+      "id": "e07eec25-274f-419d-a9d3-60229d298e54",
+      "razon_social": "FARMACIAS HIGIA SPA",
+      "rut": "77583495-1",
+      "giro": "FARMACIA",
+      "domicilio": "LO MARCOLETA 1052 LOS JARDINES LT 5",
+      "comuna": "QUILICURA",
+      "ciudad": "SANTIAGO",
+      "regimen_tributario": "REGIMEN PRO PYME GENERAL (14D)",
+      "telefono_corporativo": "950167243",
+      "email_corporativo": "VSVCONSULTORES9@GMAIL.COM",
+      "logo_url": "https://placehold.co/200?text=Co",
+      "configuracion": {
+        "moneda": "CLP",
+        "notificaciones": false
+      },
+      "nombre_rep": "KARLA FRANCISCA VERA VERDUGO",
+      "rut_rep": "18627244-7",
+      "activo": true
+    },
+    "ok": true
+  },
+  {
+    "input": "77583495-1",
+    "ok": false,
+    "error": "duplicate key value violates unique constraint \"empresa_rut_hash_key\""
+  },
+  {
+    "input": "77493132-5",
+    "ok": false,
+    "error": "Navigating frame was detached"
+  },
+  {
+    "input": "76916588-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77871935-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "26617699-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77758342-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77782757-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77806124-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77818938-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77829858-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77835246-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77904639-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "12776345-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77854265-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77849617-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77862673-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77336372-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77753277-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77889543-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77149046-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77937684-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "65191713-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77944164-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77955178-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77877135-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77852939-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78016722-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77984639-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77961583-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77871555-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77983326-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77139803-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78000714-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77994026-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77801705-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77891881-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77816587-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77087108-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77924326-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78064268-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78071957-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77951107-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77992914-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78054419-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77597208-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78064752-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78194318-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78089298-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78072524-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77902854-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78109223-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78109295-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78112284-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78097527-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78119769-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78217204-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78124763-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78216688-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77847561-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78137171-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77992106-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77756586-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77801558-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77034756-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77869399-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77656528-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77895764-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77829364-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77903846-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77799226-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "14351671-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78086516-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77756574-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "19087425-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77852913-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77938492-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78033074-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78155728-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78124088-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77922345-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77839119-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78142901-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78020281-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78044219-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77864218-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78123097-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77937906-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78133285-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78076436-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77901312-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78093448-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78056692-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77105819-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78148316-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78113009-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78198808-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78151033-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78119754-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78184026-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78209313-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78203384-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78169825-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78165722-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78166959-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "18499105-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "76587522-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77905007-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78215629-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78209664-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78074297-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78226429-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77783212-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78229656-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "76113173-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78248387-0",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77805707-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77911337-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78244278-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78221159-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78250822-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78253141-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78234081-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78237495-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78229588-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78271993-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78262268-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78271922-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77119822-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78268826-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77886719-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77498329-5",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78228538-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78219837-8",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77941998-3",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "76634236-1",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78128622-2",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78124763-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78305639-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78299929-K",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78300694-4",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78292389-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78116703-7",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "77919506-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78268554-6",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "78311828-9",
+    "ok": false,
+    "error": "Connection closed."
+  },
+  {
+    "input": "16480535-2",
+    "ok": false,
+    "error": "Connection closed."
+  }
+]

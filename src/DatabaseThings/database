@@ -1,0 +1,360 @@
+--
+-- Esquema actual
+-- Hash: Busqueda rapida (Gestión, etc)
+-- Encriptación: Para desencriptar datos sensibles (RUT, email, etc)
+--
+
+/* Extensiones */
+-- Hashes internos
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Sirve para crear ID's seguras
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+/* Tipos ENUM */
+-- Roles de usuario
+CREATE TYPE rol_usuario AS ENUM ('Administrador', 'Consultor', 'Cliente');
+-- Estado del servicio
+CREATE TYPE estado_servicio AS ENUM ('Activo', 'Pendiente', 'Suspendido');
+-- Categorias disponibles
+CREATE TYPE categoria_servicio AS ENUM ('Tributaria', 'Contabilidad', 'RRHH', 'Soporte', 'Legal');
+-- Frecuencia de servicios
+CREATE TYPE frecuencia_servicio AS ENUM ('Mensual', 'Trimestral', 'Semestral', 'Anual', 'Única vez');
+
+--
+/* Cliente/Usuario */
+--
+
+CREATE TABLE sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID REFERENCES usuario(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE usuario (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(255) NOT NULL,
+
+    rut_encrypted TEXT NOT NULL,
+    rut_hash VARCHAR(64) NOT NULL UNIQUE,
+
+    email_encrypted TEXT NOT NULL,
+    email_hash VARCHAR(64) NOT NULL UNIQUE,
+
+    clave VARCHAR(255) NOT NULL,
+    rol rol_usuario NOT NULL DEFAULT 'Cliente',
+
+    -- Desactivar usuario --
+    activo BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+--
+/* EMPRESA */
+--
+
+CREATE TABLE empresa (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id UUID REFERENCES plan(id),
+
+    razon_social VARCHAR(255) NOT NULL,
+
+    rut_encrypted TEXT NOT NULL,
+    rut_hash VARCHAR(64) NOT NULL UNIQUE,
+    
+    giro TEXT NOT NULL,
+    regimen_tributario VARCHAR(100) NOT NULL,
+    
+    telefono_corporativo VARCHAR(50) NULL, 
+    email_corporativo VARCHAR(255) NULL,
+    
+    logo_url VARCHAR(255) NULL,
+    configuracion JSONB DEFAULT '{}'::JSONB,
+
+    nombre_rep VARCHAR(255),
+    rut_rep_encrypted TEXT,
+    rut_rep_hash VARCHAR(64) UNIQUE,
+    
+    -- Desactivar empresa --
+    activo BOOLEAN DEFAULT TRUE,
+    
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE empresa_credenciales (
+    empresa_id UUID PRIMARY KEY REFERENCES empresa(id) ON DELETE CASCADE,
+    
+    sii_rut_encrypted TEXT NOT NULL,
+    sii_email_encrypted TEXT NOT NULL,
+    sii_password_encrypted TEXT NOT NULL,
+    
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sucursal (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id UUID REFERENCES empresa(id) ON DELETE CASCADE,
+    
+    direccion VARCHAR(255) NOT NULL,
+    comuna VARCHAR(100) NOT NULL,
+    ciudad VARCHAR(100) NOT NULL,
+    
+    telefono_sucursal VARCHAR(50),
+
+    es_casa_matriz BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+--
+/* Conexiones entre tablas */
+--
+
+CREATE TABLE audita (
+    usuario_id UUID REFERENCES usuario(id) ON DELETE CASCADE,
+    empresa_id UUID REFERENCES empresa(id) ON DELETE CASCADE,
+    fecha_asignacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, empresa_id)
+);
+
+--
+/* Servicios y planes */
+--
+
+-- Selección del plan (Go, Executive, Advance) 
+-- Al crear una tabla independiente solo para el plan podemos escalar el programa lo que sea necesario
+-- También si queremos borrar el plan seria tan facil como borrarlo sin afectar nada y sin tanto rodeo (ON CASCADE)
+CREATE TABLE plan (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre varchar(50) NOT NULL UNIQUE,
+    precio_base numeric DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Servicios generales (Balance anual, Finiquitos, F-30, etc.)
+-- Categorias (Contabilidad, RRHH, Soporte, etc)
+CREATE TABLE servicio (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre varchar(255) NOT NULL,
+
+    -- Identificador único para el código (ej: "iva-mensual")
+    slug varchar(100) UNIQUE NOT NULL,
+
+    -- Marca servicios que implican riesgo legal o financiero (multas) si no se cumplen.
+    es_critico boolean DEFAULT false,
+    
+    categoria categoria_servicio NOT NULL,
+
+    -- Descripción detallada del servicio
+    descripcion text, 
+
+    -- Quita la necesidad de borrar servicios, solo los desactivamos
+    activo boolean DEFAULT true,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Aquí definimos qué servicios incluye cada plan junto a las configuraciones requeridas como
+-- permitir que un servicio sea de forma mensual o anual, como es el caso de conciliación bancaria
+-- que tiene Trimestral en Executive y Mensual en Advance
+CREATE TABLE plan_servicio_config (
+    -- Unir las 3 tablas
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id uuid REFERENCES plan(id) ON DELETE CASCADE,
+    servicio_id uuid REFERENCES servicio(id) ON DELETE CASCADE,
+    
+    -- Plan disponible para su compra
+    disponible boolean DEFAULT true,
+    
+    -- Detalles como frecuencia (Mensual, Trimestral, etc).
+    detalle_frecuencia frecuencia_servicio NOT NULL DEFAULT 'Mensual',
+    
+    -- Evitar asignar el mismo servicio dos veces al plan con distintas configuraciones
+    UNIQUE(plan_id, servicio_id)
+);
+ 
+-- Asignacion independiente de servicio a empresa
+CREATE TABLE empresa_servicio (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id uuid REFERENCES empresa(id) ON DELETE CASCADE, 
+    servicio_id uuid REFERENCES servicio(id) NOT NULL,
+    
+    -- Utilizado para saber el estado actual de un servicio en especifico
+    estado estado_servicio DEFAULT 'Pendiente',
+
+    -- Permite personalizar el cobro por cliente de ser necesario
+    precio_pactado NUMERIC,
+    
+    -- Fecha de inicio del "contrato"
+    fecha_inicio TIMESTAMP WITH TIME ZONE, 
+    
+    -- Fecha de termino del "contrato"
+    fecha_termino TIMESTAMP WITH TIME ZONE, 
+    
+    -- Manejador de cambios
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Historial de Cambios: Auditoria general
+CREATE TABLE empresa_servicio_historial (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Servicio exacto al que le estamos haciendo el seguimiento
+    empresa_servicio_id uuid REFERENCES empresa_servicio(id) ON DELETE CASCADE, 
+
+    -- Responsable del cambio
+    usuario_id uuid REFERENCES usuario(id),
+   
+    -- Ultimo estado asignado
+    estado_anterior estado_servicio,
+    
+    -- Estado actual del servicio
+    estado_nuevo estado_servicio,
+    
+    -- Motivo del cambio
+    motivo text,
+    
+    -- Cuando ocurrio
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+/* TRIGGERS */
+
+-- Actualiza el updated_at de empresas y usuarios --
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Manejo del ciclo de vida de un servicio: Si se activa,
+-- se marca fecha de inicio. Si se suspende, se marca fecha de término.
+CREATE OR REPLACE FUNCTION fn_gestionar_ciclo_vida_servicio()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si pasa a 'Activo' por primera vez, le damos la fecha de inicio automáticamente
+    IF (NEW.estado = 'Activo' AND (OLD.estado IS NULL OR OLD.estado != 'Activo')) THEN
+        IF (NEW.fecha_inicio IS NULL) THEN
+            NEW.fecha_inicio = CURRENT_TIMESTAMP;
+        END IF;
+    END IF;
+
+    -- Si pasa a 'Suspendido', le ponemos la fecha de término automáticamente
+    IF (NEW.estado = 'Suspendido' AND (OLD.estado IS NULL OR OLD.estado != 'Suspendido')) THEN
+        NEW.fecha_termino = CURRENT_TIMESTAMP;
+    ELSE
+        -- Si vuelve a activarse, limpiamos la fecha de término
+        IF (NEW.estado = 'Activo') THEN
+            NEW.fecha_termino = NULL;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER tr_update_usuario BEFORE UPDATE ON usuario FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_empresa BEFORE UPDATE ON empresa FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_creds BEFORE UPDATE ON empresa_credenciales FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_sucursal BEFORE UPDATE ON sucursal FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_empresa_servicio BEFORE UPDATE ON empresa_servicio FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_ciclo_vida_servicio BEFORE UPDATE ON empresa_servicio FOR EACH ROW EXECUTE PROCEDURE fn_gestionar_ciclo_vida_servicio();
+
+/* INDICES */
+CREATE INDEX idx_usuario_rut_hash ON usuario (rut_hash);
+CREATE INDEX idx_empresa_rut_hash ON empresa (rut_hash);
+CREATE INDEX idx_usuario_email_hash ON usuario (email_hash);
+CREATE INDEX idx_empresa_razon_social ON empresa (razon_social ASC);
+CREATE INDEX idx_empresa_servicio_empresa_id ON empresa_servicio (empresa_id);
+CREATE INDEX idx_empresa_plan_id ON empresa (plan_id);
+CREATE INDEX idx_plan_servicio_config_plan_id ON plan_servicio_config (plan_id);
+
+
+/* -----------------------------------------------------------------------------------*/
+
+/* Inserts */
+
+-- Insertar los planes base del Búnker
+INSERT INTO plan (nombre, precio_base) VALUES 
+('Go', 30000),
+('Executive', 50000),
+('Advance', 100000);
+
+INSERT INTO servicio (nombre, slug, categoria, es_critico, description) VALUES
+('Declaración de Impuestos Mensual IVA', 'iva-mensual', 'Tributaria', true, 'Declaración de formulario F29 ante el SII.'),
+('Conciliación bancaria', 'conciliacion-bancaria', 'Contabilidad', false, 'Cruce de cartolas bancarias con registros contables.'),
+('Clasificación de Cuentas', 'clasificacion-cuentas', 'Contabilidad', false, 'Ordenamiento contable de movimientos.'),
+('Registro de Gastos con Factura', 'gastos-factura', 'Contabilidad', false, 'Ingreso de facturas de compra al sistema.'),
+('Registro de Ventas con Factura', 'ventas-factura', 'Contabilidad', false, 'Ingreso de facturas de venta al sistema.'),
+('Registro de Gastos con boleta', 'gastos-boleta', 'Contabilidad', false, 'Ingreso de boletas de honorarios o servicios.'),
+('Registro de Ventas con boleta', 'ventas-boleta', 'Contabilidad', false, 'Ingreso de boletas de venta.'),
+('Pre Balance', 'pre-balance', 'Contabilidad', false, 'Estado financiero preliminar.'),
+('Balance Anual', 'balance-anual', 'Contabilidad', true, 'Cierre contable anual y estado de situación.'),
+('Soporte Correo Electrónico', 'soporte-email', 'Soporte', false, 'Atención de dudas vía email (48h).'),
+('Trabajadores Recursos Humanos', 'cupos-rrhh', 'RRHH', false, 'Gestión de ficha de trabajadores.'),
+('Contratos de Trabajo', 'contratos-trabajo', 'RRHH', true, 'Redacción y carga de contratos legales.'),
+('Liquidaciones de Sueldo', 'liquidaciones-sueldo', 'RRHH', true, 'Cálculo mensual de remuneraciones.'),
+('Nómina PREVIRED', 'nomina-previred', 'RRHH', true, 'Declaración y pago de cotizaciones previsionales.'),
+('Formulario F-30', 'formulario-f30', 'RRHH', false, 'Certificado de cumplimiento de obligaciones laborales.'),
+('Finiquitos', 'finiquitos', 'RRHH', true, 'Cálculo y redacción de término de relación laboral.'),
+('Tramitación de Licencias Médicas', 'tramitacion-licencias', 'RRHH', false, 'Gestión de licencias ante FONASA/ISAPRE.');
+
+DO $$ 
+DECLARE 
+    plan_go UUID := (SELECT id FROM plan WHERE nombre = 'Go');
+    plan_exe UUID := (SELECT id FROM plan WHERE nombre = 'Executive');
+    plan_adv UUID := (SELECT id FROM plan WHERE nombre = 'Advance');
+BEGIN
+    -- CONFIGURACIÓN PLAN GO
+    INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'gastos-factura'), 'Mensual'),
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'ventas-factura'), 'Mensual'),
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'balance-anual'), 'Anual'),
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual');
+
+    -- CONFIGURACIÓN PLAN EXECUTIVE (Incluye lo de GO + extras)
+    INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'conciliacion-bancaria'), 'Trimestral'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'clasificacion-cuentas'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'gastos-factura'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'ventas-factura'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'gastos-boleta'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'ventas-boleta'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'pre-balance'), 'Trimestral'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'balance-anual'), 'Anual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'cupos-rrhh'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'contratos-trabajo'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'liquidaciones-sueldo'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'nomina-previred'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'formulario-f30'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'finiquitos'), 'Mensual'),
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'tramitacion-licencias'), 'Mensual');
+
+    -- CONFIGURACIÓN PLAN ADVANCE (Todo Mensual / Full)
+    INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'conciliacion-bancaria'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'clasificacion-cuentas'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'gastos-factura'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'ventas-factura'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'gastos-boleta'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'ventas-boleta'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'pre-balance'), 'Trimestral'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'balance-anual'), 'Anual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'cupos-rrhh'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'contratos-trabajo'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'liquidaciones-sueldo'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'nomina-previred'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'formulario-f30'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'finiquitos'), 'Mensual'),
+    (plan_adv, (SELECT id FROM servicio WHERE slug = 'tramitacion-licencias'), 'Mensual');
+END $$;
