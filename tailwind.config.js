@@ -16,6 +16,10 @@ module.exports = {
 			},
 		},
 		extend: {
+            /* AQUÍ ESTÁ LA MAGIA DE LA LETRA INTER */
+            fontFamily: {
+                sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
