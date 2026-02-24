@@ -100,7 +100,7 @@ const CrmTableList = ({
                            </div>
                         </td>
                         <td className="p-5 text-right">
-                           <span className="text-emerald-400 font-mono font-bold text-xs">${client.neto.toLocaleString()}</span>
+                           <span className="text-emerald-400 font-mono font-bold text-xs">${(client.neto || 0).toLocaleString()}</span>
                         </td>
                       </tr>
                     ))}

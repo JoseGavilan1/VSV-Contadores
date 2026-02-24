@@ -58,6 +58,8 @@ CREATE TABLE usuario (
 CREATE TABLE empresa (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_id UUID REFERENCES plan(id),
+    tipo_cliente VARCHAR(20) DEFAULT 'Empresa' 
+        CHECK (tipo_cliente IN ('Empresa', 'Persona')),
 
     razon_social VARCHAR(255) NOT NULL,
 
@@ -67,15 +69,28 @@ CREATE TABLE empresa (
     giro TEXT NOT NULL,
     regimen_tributario VARCHAR(100) NOT NULL,
     
+    -- CONTACTO
     telefono_corporativo VARCHAR(50) NULL, 
     email_corporativo VARCHAR(255) NULL,
     
     logo_url VARCHAR(255) NULL,
-    configuracion JSONB DEFAULT '{}'::JSONB,
+    drive_url VARCHAR(255),
 
+    -- Representante legal
     nombre_rep VARCHAR(255),
     rut_rep_encrypted TEXT,
     rut_rep_hash VARCHAR(64) UNIQUE,
+
+    -- ESTADOS DE CONTROL Y CRM
+    estado_pago VARCHAR(30) DEFAULT 'AL DIA' 
+        CHECK (estado_pago IN ('AL DIA', 'NO PAGADO', 'SERVICIO SUSPENDIDO')),
+    
+    estado_f29 VARCHAR(30) DEFAULT 'DECLARADO' 
+        CHECK (estado_f29 IN ('DECLARADO', 'PENDIENTE', 'NO DECLARAR')),
+
+    impuesto_pagar NUMERIC(15,2) DEFAULT 0,
+    dts_mensuales INTEGER DEFAULT 0,
+    score INTEGER DEFAULT 100 CHECK (score >= 0 AND score <= 100),
     
     -- Desactivar empresa --
     activo BOOLEAN DEFAULT TRUE,
@@ -90,6 +105,7 @@ CREATE TABLE empresa_credenciales (
     sii_rut_encrypted TEXT NOT NULL,
     sii_email_encrypted TEXT NOT NULL,
     sii_password_encrypted TEXT NOT NULL,
+    web_password_encrypted text NOT NULL,
     
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -108,6 +124,19 @@ CREATE TABLE sucursal (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE bitacora_gestion (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Relaciones
+    empresa_id UUID NOT NULL REFERENCES empresa(id) ON DELETE CASCADE,
+    usuario_id UUID REFERENCES usuario(id) ON DELETE SET NULL,
+
+    texto TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.bitacora_gestion ENABLE ROW LEVEL SECURITY;
 
 --
 /* Conexiones entre tablas */
@@ -258,6 +287,38 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+CREATE OR REPLACE FUNCTION public.calcular_score_empresa() 
+RETURNS TRIGGER AS $$
+DECLARE
+    nuevo_score INT := 100;
+BEGIN
+    -- Regla 1: Si el servicio está suspendido, castigo severo (-70 pts)
+    IF NEW.estado_pago = 'SERVICIO SUSPENDIDO' THEN
+        nuevo_score := nuevo_score - 70;
+    -- Regla 2: Si no ha pagado, castigo medio (-40 pts)
+    ELSIF NEW.estado_pago = 'NO PAGADO' THEN
+        nuevo_score := nuevo_score - 40;
+    END IF;
+
+    -- Regla 3: Si el F29 está pendiente, restamos puntos por riesgo operativo (-20 pts)
+    IF NEW.estado_f29 = 'PENDIENTE' THEN
+        nuevo_score := nuevo_score - 20;
+    END IF;
+
+    -- Limitar los valores entre 0 y 100
+    IF nuevo_score < 0 THEN nuevo_score := 0; END IF;
+    IF nuevo_score > 100 THEN nuevo_score := 100; END IF;
+
+    NEW.score := nuevo_score;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_actualizar_score ON public.empresa;
+CREATE TRIGGER trigger_actualizar_score
+BEFORE INSERT OR UPDATE OF estado_pago, estado_f29 ON public.empresa
+FOR EACH ROW EXECUTE FUNCTION public.calcular_score_empresa();
+
 CREATE TRIGGER tr_update_usuario BEFORE UPDATE ON usuario FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_update_empresa BEFORE UPDATE ON empresa FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER tr_update_creds BEFORE UPDATE ON empresa_credenciales FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
@@ -381,53 +442,38 @@ BEGIN
     (plan_full, (SELECT id FROM servicio WHERE slug = 'pre-balance'), 'Mensual'); -- Balance y Pre-balance
 END $$;
 
-/* ------------------------------------------- */
+/* ----------------------------------------------------------------------------------- */
 
+/* Vistas */
 
--- 3. CREAR LA TABLA DE BITÁCORA DE GESTIÓN (NOTAS)
-CREATE TABLE public.bitacora_gestion (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  empresa_id uuid NOT NULL,
-  usuario_id uuid, -- El ejecutivo que escribió la nota (opcional)
-  texto text NOT NULL,
-  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT bitacora_gestion_pkey PRIMARY KEY (id),
-  CONSTRAINT bitacora_gestion_empresa_id_fkey FOREIGN KEY (empresa_id) REFERENCES public.empresa(id) ON DELETE CASCADE,
-  CONSTRAINT bitacora_gestion_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuario(id) ON DELETE SET NULL
-);
-
-
--- 4. CREAR LA FUNCIÓN PARA CALCULAR EL SCORE AUTOMÁTICAMENTE
-CREATE OR REPLACE FUNCTION public.calcular_score_empresa() 
-RETURNS TRIGGER AS $$
-DECLARE
-    nuevo_score INT := 100;
-BEGIN
-    -- Regla 1: Si el servicio está suspendido, castigo severo (-70 pts)
-    IF NEW.estado_pago = 'SERVICIO SUSPENDIDO' THEN
-        nuevo_score := nuevo_score - 70;
-    -- Regla 2: Si no ha pagado, castigo medio (-40 pts)
-    ELSIF NEW.estado_pago = 'NO PAGADO' THEN
-        nuevo_score := nuevo_score - 40;
-    END IF;
-
-    -- Regla 3: Si el F29 está pendiente, restamos puntos por riesgo operativo (-20 pts)
-    IF NEW.estado_f29 = 'PENDIENTE' THEN
-        nuevo_score := nuevo_score - 20;
-    END IF;
-
-    -- Limitar los valores entre 0 y 100
-    IF nuevo_score < 0 THEN nuevo_score := 0; END IF;
-    IF nuevo_score > 100 THEN nuevo_score := 100; END IF;
-
-    NEW.score := nuevo_score;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 5. ASIGNAR EL TRIGGER A LA TABLA EMPRESA
--- Esto hará que cada vez que cambies el estado de pago o el F29 de un cliente, su score se recalcule solo.
-DROP TRIGGER IF EXISTS trigger_actualizar_score ON public.empresa;
-CREATE TRIGGER trigger_actualizar_score
-BEFORE INSERT OR UPDATE OF estado_pago, estado_f29 ON public.empresa
-FOR EACH ROW EXECUTE FUNCTION public.calcular_score_empresa();
+CREATE OR REPLACE VIEW vista_clientes_crm AS
+SELECT 
+    e.id,
+    e.razon_social AS "razonSocial",
+    e.rut_encrypted AS "rut", 
+    e.giro,
+    p.nombre AS "plan",
+    p.precio_base AS "tramo",
+    s.direccion, s.comuna, s.ciudad,
+    e.telefono_corporativo AS "telefono",
+    e.email_corporativo AS "correo",
+    ec.web_password_encrypted AS "claveWeb",
+    ec.sii_password_encrypted AS "claveSII",
+    e.estado_f29 AS "estadoFormulario",
+    e.impuesto_pagar AS "impuestoPagar",
+    e.nombre_rep AS "repNombre",
+    e.rut_rep_encrypted AS "repRut",
+    e.estado_pago AS "pagoServicio",
+    e.tipo_cliente AS "type",
+    0 AS "neto", 
+    e.dts_mensuales AS "dts",
+    e.score,
+    e.drive_url AS "drive",
+    COALESCE(
+        (SELECT json_agg(json_build_object('id', b.id, 'fecha', to_char(b.created_at, 'DD/MM/YYYY'), 'texto', b.texto))
+         FROM bitacora_gestion b WHERE b.empresa_id = e.id), '[]'::json
+    ) AS "notas"
+FROM empresa e
+LEFT JOIN plan p ON e.plan_id = p.id
+LEFT JOIN sucursal s ON e.id = s.empresa_id AND s.es_casa_matriz = true
+LEFT JOIN empresa_credenciales ec ON e.id = ec.empresa_id;

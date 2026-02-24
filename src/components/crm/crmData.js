@@ -1,3 +1,4 @@
+/*
 export const INITIAL_CLIENTS = [
   {
     id: 1, razonSocial: 'FARMACIAS HIGIA SPA', rut: '77.583.495-1', giro: 'FARMACIA Y VENTA DE MEDICAMENTOS',
@@ -102,3 +103,56 @@ export const COMPLIANCE_DATA = [
 export const RISK_DATA = [
   { name: 'Suspendidos', monto: 2.1 }, { name: 'No Pagados', monto: 0.8 }, { name: 'Al Día', monto: 0 },
 ];
+*/
+
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth.jsx';
+import { getCrmDataApi } from '../../services/crmService.js';
+
+export const useBunkerData = () => {
+  const { user, selectedCompany } = useAuth();
+  const [clients, setClients] = useState([]);
+  const [cashFlow, setCashFlow] = useState([]);
+  const [services, setServices] = useState([]);
+  const [compliance, setCompliance] = useState([]);
+  const [risk, setRisk] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAll = async () => {
+    if (!user?.sessionId) {
+      setClients([]);
+      setCashFlow([]);
+      setServices([]);
+      setCompliance([]);
+      setRisk([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const empresaId = selectedCompany?.id ?? selectedCompany?.empresaId ?? null;
+      const response = await getCrmDataApi(user.sessionId, empresaId);
+      const payload = await response.json();
+
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.message || 'No se pudo cargar CRM');
+      }
+
+      setClients(payload?.clients || []);
+      setCashFlow(payload?.cashFlow || []);
+      setServices(payload?.services || []);
+      setCompliance(payload?.compliance || []);
+      setRisk(payload?.risk || []);
+    } catch (error) {
+      console.error("Error en el Búnker:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadAll(); }, [user?.sessionId, selectedCompany?.id, selectedCompany?.empresaId]);
+
+  return { clients, cashFlow, services, compliance, risk, loading, refresh: loadAll };
+};

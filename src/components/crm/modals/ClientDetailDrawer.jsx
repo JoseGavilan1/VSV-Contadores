@@ -4,6 +4,7 @@ import { X, Building2, User, Edit, Folder, FileSignature, BookOpen, Key, Phone, 
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { EditableField, SecureField } from '../ui/CrmUI';
+import { createNotaApi } from '@/services/crmService';
 
 const ClientDetailDrawer = ({ client, onClose, onUpdateClient }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -20,21 +21,39 @@ const ClientDetailDrawer = ({ client, onClose, onUpdateClient }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSave = () => {
-        onUpdateClient(formData);
+    const handleSave = async () => {
+        await onUpdateClient(formData);
         setIsEditing(false);
-        toast({ title: "Guardado", description: "Datos actualizados correctamente." });
     };
 
-    const addNote = () => {
+    const addNote = async () => {
         if(!newNote.trim()) return;
-        const dateStr = new Date().toLocaleDateString('es-CL');
-        const noteObj = { id: Date.now(), fecha: dateStr, texto: newNote };
-        
-        const updatedFormData = { ...formData, notas: [noteObj, ...(formData.notas || [])] };
-        setFormData(updatedFormData);
-        onUpdateClient(updatedFormData);
-        setNewNote('');
+
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const sessionId = user.sessionId;
+
+            if (!sessionId) {
+                toast({ title: "Error", description: "Sesión expirada." });
+                return;
+            }
+
+            const response = await createNotaApi(sessionId, formData.id, newNote);
+            const result = await response.json();
+
+            if (!result.success) {
+                toast({ title: "Error", description: result.message || "No se pudo guardar la nota." });
+                return;
+            }
+
+            const noteObj = result.nota;
+            setFormData(prev => ({ ...prev, notas: [noteObj, ...(prev.notas || [])] }));
+            setNewNote('');
+            toast({ title: "Nota guardada", description: "Se registró en la bitácora." });
+        } catch (error) {
+            console.error('Error guardando nota:', error);
+            toast({ title: "Error", description: "No se pudo guardar la nota." });
+        }
     };
 
     return (

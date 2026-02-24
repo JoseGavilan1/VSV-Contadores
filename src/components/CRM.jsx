@@ -1,17 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react'; // Añadido useEffect
 import { AnimatePresence } from 'framer-motion';
 import { LayoutList, BarChart3, Download } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
-import { INITIAL_CLIENTS } from './crm/crmData';
+// 1. CAMBIO: Importar el Hook en lugar de la constante estática
+import { useBunkerData } from './crm/crmData'; 
+import { updateClienteApi } from '@/services/crmService';
 import CrmTableList from './crm/views/CrmTableList';
-import CrmAnalytics from './crm/modals/CrmAnalytics';
+import CrmAnalytics from './crm/modals/CrmAnalytics'; // Asegura que la ruta sea /views
 import ClientDetailDrawer from './crm/modals/ClientDetailDrawer';
 
 const CRM = () => {
   const [activeTab, setActiveTab] = useState('list');
-  const [clients, setClients] = useState(INITIAL_CLIENTS);
   
+  // 2. CAMBIO: Usar el Hook para obtener datos reales y el estado de carga
+  const { clients: dbClients, cashFlow, services, compliance, risk, loading, refresh } = useBunkerData();
+  
+  // Estado local para cuando editamos (mantiene la fluidez de la UI)
+  const [clients, setClients] = useState([]);
+
+  // Sincronizar el estado local con los datos de la DB cuando cargan
+  useEffect(() => {
+    if (dbClients) setClients(dbClients);
+  }, [dbClients]);
+
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos'); 
@@ -19,7 +31,7 @@ const CRM = () => {
   
   const [selectedClient, setSelectedClient] = useState(null);
 
-  // Lógica Filtrado
+  // Lógica Filtrado (Se mantiene igual, pero usa 'clients' del estado local)
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
       const matchesSearch = (client.razonSocial || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -39,10 +51,35 @@ const CRM = () => {
     };
   }, [clients]);
 
-  const handleUpdateClient = (updatedData) => {
-    const updatedClients = clients.map(c => c.id === updatedData.id ? updatedData : c);
-    setClients(updatedClients);
-    setSelectedClient(updatedData); 
+  const handleUpdateClient = async (updatedData) => {
+    try {
+      // Obtener sessionId del contexto o localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const sessionId = user.sessionId;
+      
+      if (!sessionId) {
+        toast({ title: "Error", description: "Sesión expirada." });
+        return;
+      }
+
+      // Llamar API para guardar cambios
+      const response = await updateClienteApi(sessionId, updatedData.id, updatedData);
+      const result = await response.json();
+
+      if (result.success) {
+        // Actualizar estado local
+        const updatedClients = clients.map(c => c.id === updatedData.id ? updatedData : c);
+        setClients(updatedClients);
+        setSelectedClient(updatedData);
+        toast({ title: "Éxito", description: "Empresa actualizada correctamente." });
+        refresh(); // Sincronizar con BD
+      } else {
+        toast({ title: "Error", description: result.message || "Fallo al actualizar." });
+      }
+    } catch (error) {
+      console.error("Error actualizando cliente:", error);
+      toast({ title: "Error", description: "No se pudo guardar los cambios." });
+    }
   };
 
   const exportCSV = () => {
@@ -58,6 +95,22 @@ const CRM = () => {
       document.body.removeChild(link);
       toast({ title: "Exportado", description: "Archivo CSV generado." });
   };
+
+  // 3. CAMBIO: Pantalla de carga para evitar errores de undefined
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full border-2 border-blue-500/25 border-t-blue-500 animate-spin" />
+            <p className="text-white/90 text-sm font-semibold tracking-wide">
+              Cargando CRM...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 font-sans pb-10">
@@ -110,7 +163,15 @@ const CRM = () => {
         </div>
       )}
 
-      {activeTab === 'analytics' && <CrmAnalytics />}
+      {/* 4. CAMBIO: Pasar los datos reales a las analíticas */}
+      {activeTab === 'analytics' && (
+        <CrmAnalytics 
+          cashFlow={cashFlow}
+          services={services}
+          compliance={compliance}
+          risk={risk}
+        />
+      )}
       
     </div>
   );

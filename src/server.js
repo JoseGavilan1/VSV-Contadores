@@ -23,6 +23,7 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/users.routes.js';
 import companyRoutes from './routes/company.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import clientesRoutes from './routes/clientes.routes.js';
 import dteRoutes from "./routes/dte.routes.js";
 import accountingRoutes from './routes/accounting.routes.js';
 import rrhhRoutes from './routes/rrhh.routes.js';
@@ -65,6 +66,7 @@ app.use('/api/users', apiLimiter, userRoutes);
 app.use('/api/companies', apiLimiter, companyRoutes);
 
 app.use('/api/dashboard', apiLimiter, dashboardRoutes);
+app.use('/api/clientes', apiLimiter, clientesRoutes);
 app.use('/api/accounting', apiLimiter, accountingRoutes);
 app.use('/api/rrhh', apiLimiter, rrhhRoutes);
 app.use('/api/renta', apiLimiter, rentaRoutes);
