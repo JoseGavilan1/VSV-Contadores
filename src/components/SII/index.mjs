@@ -1,6 +1,7 @@
+// index.mjs
 import { iniciarNavegador, loginSII } from './sii_login.mjs';
 import { extraerDatosTributarios } from './sii_extraccion.mjs';
-import { guardarEmpresa } from './sii_database.mjs'; 
+import { guardarEmpresa, verificarEmpresaExistente } from './sii_database.mjs'; 
 
 function imprimirBoucher(datos) {
     console.log("\n=======================================================");
@@ -15,48 +16,49 @@ function imprimirBoucher(datos) {
     console.log(`📅 Inicio Activid.: ${datos.inicioActividades}`);
     console.log(`🛑 Término Giro   : ${datos.terminoGiro}`);
     console.log(`✅ Cumplimiento   : ${datos.estadoCumplimiento}`);
-    console.log("-------------------------------------------------------");
-    console.log("👥 REPRESENTANTES LEGALES:");
-    if (datos.representantes.length > 0) {
-        datos.representantes.forEach((rep, i) => {
-            console.log(`   ${i + 1}. ${rep.nombre} (RUT: ${rep.rut})`);
-        });
-    } else {
-        console.log("   No se encontraron representantes.");
-    }
     console.log("=======================================================\n");
 }
 
 async function main() {
-    // ⚠️ PON AQUÍ UN RUT Y CLAVE REAL PARA LA PRUEBA ⚠️
+    // ⚠️ CREDENCIALES ACTUALIZADAS PARA LA PRUEBA ⚠️
     const credencialesPrueba = {
         rutCompleto: "77493132-5", 
         clave: "poli2021"
     };
 
-    let browser;
     try {
-        console.log("Iniciando conexión automatizada al SII...");
+        console.log(`\n[1] Comprobando disponibilidad del RUT ${credencialesPrueba.rutCompleto} en la base de datos...`);
         
-        browser = await iniciarNavegador();
+        // 🔥 VERIFICACIÓN PREVIA (Early Exit) 🔥
+        const empresaExistente = await verificarEmpresaExistente(credencialesPrueba.rutCompleto);
+        
+        if (empresaExistente) {
+            console.log(`\n✅ ¡DETENCIÓN TEMPRANA!`);
+            console.log(`La empresa "${empresaExistente.razon_social}" YA EXISTE en el Bunker.`);
+            console.log(`No es necesario iniciar el bot ni entrar al SII. Misión abortada para ahorrar recursos.\n`);
+            process.exit(0); // Cierra todo el proceso inmediatamente
+        }
+
+        console.log(`[+] La empresa es nueva. Desplegando el bot del SII...`);
+        
+        // Si no existe, recién aquí abrimos el navegador
+        const browser = await iniciarNavegador();
         const page = await browser.newPage();
         
         await loginSII(page, credencialesPrueba.rutCompleto, credencialesPrueba.clave);
         const datosEmpresa = await extraerDatosTributarios(page);
         
         imprimirBoucher(datosEmpresa);
-
-        // Subir los datos a Supabase de forma segura
         await guardarEmpresa(datosEmpresa);
 
+        console.log("Cerrando navegador en 5 segundos...");
+        await new Promise(r => setTimeout(r, 5000));
+        await browser.close(); 
+        
     } catch (error) {
         console.error("\n❌ Ocurrió un error en el proceso:", error.message);
     } finally {
-        if (browser) {
-            console.log("Cerrando navegador en 5 segundos...");
-            await new Promise(r => setTimeout(r, 5000));
-            await browser.close(); 
-        }
+        process.exit(0);
     }
 }
 
