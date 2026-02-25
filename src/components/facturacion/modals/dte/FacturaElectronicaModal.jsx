@@ -37,24 +37,24 @@ const todayLocalISO = () => {
 
 // Inicializar el estado del formulario con valores por defecto
 const createEmptyItem = () => ({
-  rutFacturar: "",
+  rutFacturar: "77493132-5", // Dejar vacio
   ciudadReceptor: "Santiago",
   name: "Operación Renta",
   cantidad: "1",
-  precio: "",
+  precio: "100", // Dejar vacio
   fecha: todayLocalISO(),
   metodo: "1",
   ciudadEmisor: "Santiago",
-  telefonoEmisor: "",
-  contactoReceptor: "",
-  rutSolicita: "",
-  unidadProducto: "UN",
-  descuentoPct: "",
-  descripcionProducto: "",
-  transportePatente: "",
-  transporteRut: "",
-  transporteChofer: "",
-  transporteRutChofer: "",
+  telefonoEmisor: "", // Dejar vacio
+  contactoReceptor: "", // Dejar vacio
+  rutSolicita: "", // Dejar vacio
+  unidadProducto: "",  // Dejar vacio
+  descuentoPct: "", // Dejar vacio
+  descripcionProducto: "", // Dejar vacio
+  transportePatente: "", // Dejar vacio
+  transporteRut: "", // Dejar vacio
+  transporteChofer: "", // Dejar vacio
+  transporteRutChofer: "", // Dejar vacio
 });
 
 export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
@@ -79,43 +79,12 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
   // Función para alternar la sección de transporte
   const toggleTransporte = () => {
-    setShowTransporte((prev) => {
-      const next = !prev;
-
-      if (prev === true && next === false) {
-        setItem((curr) => ({
-          ...curr,
-          transportePatente: "",
-          transporteRut: "",
-          transporteChofer: "",
-          transporteRutChofer: "",
-        }));
-      }
-
-      return next;
-    });
+    setShowTransporte((prev) => !prev);
   };
 
   // Función para alternar la sección de editar detalles adicionales
   const toggleEditarDetalles = () => {
-    setShowEditarDetalles((prev) => {
-      const next = !prev;
-
-      if (prev === true && next === false) {
-        setItem((curr) => ({
-          ...curr,
-          ciudadEmisor: "Santiago",
-          telefonoEmisor: "",
-          contactoReceptor: "",
-          rutSolicita: "",
-          unidadProducto: "UN",
-          descuentoPct: "",
-          descripcionProducto: "",
-        }));
-      }
-
-      return next;
-    });
+    setShowEditarDetalles((prev) => !prev);
   };
 
   // Función para resetear el formulario a su estado inicial
@@ -139,10 +108,20 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) errors.push("Cantidad");
     if (!Number.isFinite(precioNum) || precioNum <= 0) errors.push("Precio");
 
-    if (showEditarDetalles) {
+    const hasDetalleExtraData = [
+      item.ciudadEmisor,
+      item.telefonoEmisor,
+      item.contactoReceptor,
+      item.rutSolicita,
+      item.unidadProducto,
+      item.descuentoPct,
+      item.descripcionProducto,
+    ].some((value) => String(value || "").trim() !== "");
+
+    if (hasDetalleExtraData) {
       const descuentoNum = Number(item.descuentoPct || 0);
       if (!item.ciudadEmisor.trim()) errors.push("Ciudad emisor");
-      if (descuentoNum < 0 || descuentoNum > 100) {
+      if (item.descuentoPct !== "" && (descuentoNum < 0 || descuentoNum > 100)) {
         errors.push("% Descuento (debe estar entre 0 y 100)");
       }
     }
@@ -181,6 +160,15 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
         item.transporteChofer,
         item.transporteRutChofer,
       ].some((value) => value?.trim());
+      const hasDetalleExtraData = [
+        item.ciudadEmisor,
+        item.telefonoEmisor,
+        item.contactoReceptor,
+        item.rutSolicita,
+        item.unidadProducto,
+        item.descuentoPct,
+        item.descripcionProducto,
+      ].some((value) => String(value || "").trim() !== "");
 
       const dteJson = buildDteJson({
         TipoDTE: 33,
@@ -199,7 +187,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
           ...(item.descripcionProducto.trim()
             ? { Descripcion: item.descripcionProducto.trim() }
             : {}),
-          ...(showTransporte && hasTransporteData
+          ...(hasTransporteData
             ? {
                 Transporte: {
                   Patente: item.transportePatente,
@@ -212,7 +200,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
         },
       });
 
-      if (showEditarDetalles) {
+      if (hasDetalleExtraData) {
         dteJson.Encabezado = dteJson.Encabezado || {};
         dteJson.Encabezado.Receptor = {
           ...(dteJson.Encabezado.Receptor || {}),
