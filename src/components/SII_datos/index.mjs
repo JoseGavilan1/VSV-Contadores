@@ -1,3 +1,4 @@
+//se lanza este archivo  hace todo
 // index.mjs
 import { iniciarNavegador, loginSII } from './sii_login.mjs';
 import { extraerDatosTributarios } from './sii_extraccion.mjs';
