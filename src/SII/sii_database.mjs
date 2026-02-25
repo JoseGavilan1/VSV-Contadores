@@ -1,7 +1,7 @@
 // sii_database.mjs
 import crypto from 'crypto';
-import { pool } from '../../database/db.js'; 
-import { encrypt, generateHash } from '../../utils/crypto.js'; 
+import { pool } from '../database/db.js'; 
+import { encrypt, generateHash } from '../utils/crypto.js'; 
 
 // 🔥 NUEVO: Función para consultar ANTES de iniciar el bot 🔥
 export async function verificarEmpresaExistente(rut) {
