@@ -3,18 +3,19 @@ import crypto from 'crypto';
 import { pool } from '../database/db.js'; 
 import { encrypt, generateHash } from '../utils/crypto.js'; 
 
-// 🔥 NUEVO: Función para consultar ANTES de iniciar el bot 🔥
+// Función de apoyo para evitar el error "value too long for type character varying(100)"
+const limitarTexto = (texto, max = 95) => {
+    if (!texto) return 'No registra';
+    return texto.length > max ? texto.substring(0, max) + "..." : texto;
+};
+
 export async function verificarEmpresaExistente(rut) {
-    // Generamos el hash del RUT tal cual lo tienes en tu sistema
     const rutHash = generateHash(rut);
-    
     try {
         const checkQuery = await pool.query(
             `SELECT id, razon_social FROM empresa WHERE rut_hash = $1`,
             [rutHash]
         );
-        
-        // Si la encuentra, devolvemos los datos. Si no, devolvemos null.
         if (checkQuery.rows.length > 0) {
             return checkQuery.rows[0]; 
         }
@@ -25,14 +26,16 @@ export async function verificarEmpresaExistente(rut) {
     }
 }
 
-// Función exclusiva para guardar (ya sabemos que no existe cuando llega aquí)
 export async function guardarEmpresa(datos) {
-    console.log(`\n[+] Guardando nueva empresa en el Bunker...`);
+    console.log(`\n[+] Guardando empresa y sus Representantes Legales en el Bunker...`);
 
     const empresaId = crypto.randomUUID();
     const sucursalId = crypto.randomUUID();
     const rutEncriptado = encrypt(datos.rut);
     const rutHash = generateHash(datos.rut);
+
+    // Formatear los representantes en formato JSON stringificado
+    const representantesJSON = JSON.stringify(datos.representantes.length > 0 ? datos.representantes : [{ nombre: "Sin representantes extraídos", rut: "N/A" }]);
 
     try {
         await pool.query(
@@ -42,12 +45,19 @@ export async function guardarEmpresa(datos) {
                 termino_giro, cumplimiento, representantes_legales, activo
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
-                empresaId, datos.razonSocial, rutEncriptado, rutHash,
-                datos.giro || 'Sin giro registrado', 'Por asignar',                        
-                datos.correo !== 'No registra' ? datos.correo : null,
-                datos.telefono !== 'No registra' ? datos.telefono : null,
-                datos.inicioActividades, datos.terminoGiro, datos.estadoCumplimiento,
-                JSON.stringify(datos.representantes), true 
+                empresaId, 
+                limitarTexto(datos.razonSocial), // Limitamos textos para que no superen el VARCHAR(100)
+                rutEncriptado, 
+                rutHash,
+                'Sin giro registrado', 
+                'Por asignar',                        
+                limitarTexto(datos.correo !== 'No registra' ? datos.correo : null),
+                limitarTexto(datos.telefono !== 'No registra' ? datos.telefono : null),
+                limitarTexto(datos.inicioActividades), 
+                limitarTexto(datos.terminoGiro), 
+                limitarTexto(datos.estadoCumplimiento),
+                representantesJSON, // Los representantes legales se guardan en formato JSON
+                true 
             ]
         );
 
@@ -56,13 +66,17 @@ export async function guardarEmpresa(datos) {
                 id, empresa_id, direccion, comuna, ciudad, telefono_sucursal, es_casa_matriz
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
-                sucursalId, empresaId, datos.direccion || 'Sin dirección', 
-                'Santiago', 'Santiago', 
-                datos.telefono !== 'No registra' ? datos.telefono : null, true 
+                sucursalId, 
+                empresaId, 
+                limitarTexto(datos.direccion || 'Sin dirección'), 
+                'Santiago', 
+                'Santiago', 
+                limitarTexto(datos.telefono !== 'No registra' ? datos.telefono : null), 
+                true 
             ]
         );
 
-        console.log(`[+] ¡Registro completado con éxito!`);
+        console.log(`[+] ¡Registro completado con éxito! Se guardaron ${datos.representantes.length} representantes legales.`);
         return { id: empresaId };
 
     } catch (error) {
