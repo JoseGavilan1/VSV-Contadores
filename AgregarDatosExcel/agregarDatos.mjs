@@ -1,12 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "csv-parse";
-import puppeteer from "puppeteer";
 import { fileURLToPath } from "node:url";
 
-const LOGIN_URL =
-  "https://zeusr.sii.cl//AUT2000/InicioAutenticacion/IngresoRutClave.html?https://misiir.sii.cl/cgi_misii/siihome.cgi";
+// Librerías de Puppeteer Stealth
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
+puppeteer.use(StealthPlugin());
+
+const LOGIN_URL = "https://zeusr.sii.cl//AUT2000/InicioAutenticacion/IngresoRutClave.html?https://misiir.sii.cl/cgi_misii/siihome.cgi";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CSV_INPUT_PATH = path.join(SCRIPT_DIR, "input", "CONTABILIDAD-2026.csv");
 const VALIDOS_OUTPUT_PATH = path.join(SCRIPT_DIR, "output", "validos.json");
@@ -180,14 +183,19 @@ async function login(page, cred) {
     document.querySelector("#clave").value = "";
   });
 
-  await page.type("#rutcntr", rut);
-  await page.keyboard.type(dv);
-  await page.type("#clave", cred.pass);
+  await page.type("#rutcntr", rut, { delay: 80 });
+  await page.keyboard.type(dv, { delay: 80 });
+  await page.type("#clave", cred.pass, { delay: 80 });
 
+  // Reemplaza desde el await Promise.all(...) hacia abajo dentro de tu función login:
+  
   await Promise.all([
     page.click("#bt_ingresar"),
     page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => null),
   ]);
+
+  // ---> AGREGAR ESTA PAUSA PARA DEJAR QUE EL SII TERMINE DE CARGAR <---
+  await new Promise(r => setTimeout(r, 4000));
 
   const textoPagina = await page.evaluate(() => document.body?.innerText?.toLowerCase() ?? "");
   const sigueEnLogin = (await page.$("#rutcntr")) !== null;
@@ -207,6 +215,16 @@ const esErrorReintentable = (error) => {
 };
 
 async function extraerEmpresa(page) {
+  // ---> ESPERAR EXPLÍCITAMENTE A QUE EL ELEMENTO CARGUE <---
+  try {
+    await page.waitForSelector("#nameCntr", { timeout: 15000 });
+  } catch (error) {
+    console.warn("⚠️ No se encontró el #nameCntr a tiempo. Puede que la página no cargó bien o está en un iframe.");
+    // Si quieres ver qué vio Puppeteer, puedes guardar un pantallazo:
+    // await page.screenshot({ path: 'error_sii.png' });
+  }
+
+  // Ahora sí, ejecutamos el código del navegador
   return await page.evaluate(() => {
     const domi = document.querySelector("#domiCntr")?.textContent?.trim() ?? null;
 
@@ -269,10 +287,39 @@ async function extraerEmpresa(page) {
     const empresas = await obtenerValidosDesdeCSV();
 
     browser = await puppeteer.launch({
-      headless: false
+      headless: false,
+      executablePath: 'C://Program Files//Google//Chrome//Application//chrome.exe',
+      args: ['--start-maximized'], // Abre la ventana en grande, ayuda a parecer humano
+      ignoreDefaultArgs: ['--enable-automation'] // <--- ESTA LÍNEA OCULTA EL CARTEL
+    });
+    
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
+    page.setDefaultTimeout(60000);
+    
+    // --- EVASIÓN AVANZADA PARA FIREWALL F5 DEL SII ---
+    // 1. Tamaño de pantalla de un notebook normal (Puppeteer usa 800x600 por defecto, lo cual bloquean)
+    await page.setViewport({ width: 1366, height: 768 });
+
+    // 2. User-Agent y Headers de un usuario real
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'es-CL,es;q=0.9,en;q=0.8'
     });
 
-    const page = await browser.newPage();
+    // 3. Inyectar propiedades de navegador real antes de que cargue la página
+    await page.evaluateOnNewDocument(() => {
+      // Borrar rastro de bot
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      // Simular que tenemos plugins instalados (Puppeteer viene vacío por defecto)
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      // Simular idioma del sistema operativo
+      Object.defineProperty(navigator, 'languages', { get: () => ['es-CL', 'es', 'en'] });
+      // Simular variables internas de Chrome
+      window.chrome = { runtime: {} };
+    });
+    // --- FIN EVASIÓN ---
+
     page.setDefaultTimeout(60000);
 
     const resultados = [];
