@@ -7,7 +7,10 @@
     "dev": "vite --host :: --port 3000",
     "build": "vite build",
     "preview": "vite preview --host :: --port 3000",
-    "server": "node ./src/server.js"
+    "server": "node ./src/server.js",
+    "excel:import": "node ./AgregarDatosExcel/agregarDatos.mjs",
+    "excel:extract": "node ./AgregarDatosExcel/agregarDatos.mjs",
+    "excel:insert": "node ./AgregarDatosExcel/insertarEmpresas.mjs"
   },
   "dependencies": {
     "@babel/generator": "^7.26.3",
