@@ -21,7 +21,7 @@ const {
 
 const MODULE_CONFIG = {
   CIUDAD_EMISOR: "SANTIAGO",
-  DOWNLOAD_PATH: path.resolve(process.cwd(), "./tmp")
+  DOWNLOAD_PATH: path.resolve(process.cwd(), "./tmp"),
 };
 
 export async function emitirDteConPuppeteer(dteJson) {
@@ -31,10 +31,14 @@ export async function emitirDteConPuppeteer(dteJson) {
   // Encabezado / Receptor
   const rutRecibido = String(dteJson?.Encabezado?.Receptor?.RUTRecep);
   const [RUT_RECEPTOR, DV_RECEPTOR]  = rutRecibido.split("-");
-  const CIUDAD_RECEPTOR = dteJson?.Encabezado?.Receptor?.CdadRecep;
+  const CIUDAD_RECEPTOR = dteJson?.Encabezado?.Receptor?.CdadRecep || "SANTIAGO";
+  const CIUDAD_EMISOR = dteJson?.Encabezado?.Emisor?.CiudadOrigen || MODULE_CONFIG.CIUDAD_EMISOR;
 
   // Detalle
   const { NmbItem, QtyItem, UnmdItem, PrcItem, DescuentoPct, FchEmis, DscItem } = dteJson?.Detalle || {};
+  if (!FchEmis || typeof FchEmis !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(FchEmis)) {
+    return { ok: false, error: "Fecha de emisión inválida. Se espera formato YYYY-MM-DD" };
+  }
 
   const partes = FchEmis.split("-");
   const fechaInvertida = `${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -67,7 +71,7 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     // 5. Ciudades y Origen
     await page.waitForSelector('input[name="EFXP_CIUDAD_ORIGEN"]', { visible: true, delay: 10 });
-    await page.type('input[name="EFXP_CIUDAD_ORIGEN"]', MODULE_CONFIG.CIUDAD_EMISOR, { delay: 10 });
+    await page.type('input[name="EFXP_CIUDAD_ORIGEN"]', CIUDAD_EMISOR, { delay: 10 });
     
     await page.waitForSelector('input[name="EFXP_CIUDAD_RECEP"]', { visible: true });
 
@@ -114,7 +118,7 @@ export async function emitirDteConPuppeteer(dteJson) {
     // pero necesitamos rut para emitir facturas
     //
 
-    await clickByExactText(page, 'Validar y visualizar');
+    // await clickByExactText(page, 'Validar y visualizar');
 
     /*
     // 7. Proceso de Firma Electrónica

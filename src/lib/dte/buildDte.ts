@@ -18,7 +18,7 @@ export type DteDetalle = {
   Metodo: string;
   DescuentoPct?: number;
   Descripcion?: string;
-  FchEmis: Date;
+  FchEmis: string;
   Traslado?: string;
   Transporte?: DteTransporte;
 };

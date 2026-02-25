@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ const DOC_CONFIG = {
   description: "Completa los datos para emitir una Factura Electrónica (DTE 33).",
 };
 
+// Tomar la fecha local en formato ISO (YYYY-MM-DD) para el campo de fecha de emisión
 const todayLocalISO = () => {
   const d = new Date();
   const offset = d.getTimezoneOffset();
@@ -34,32 +35,49 @@ const todayLocalISO = () => {
   return local.toISOString().slice(0, 10);
 };
 
+// Inicializar el estado del formulario con valores por defecto
 const createEmptyItem = () => ({
+  rutFacturar: "",
+  ciudadReceptor: "Santiago",
   name: "Operación Renta",
   cantidad: "1",
-  unidad: "UN",
-  precio: "123",
-  descuento: "",
+  precio: "",
   fecha: todayLocalISO(),
   metodo: "1",
-  descripcion: "",
-
+  ciudadEmisor: "Santiago",
+  telefonoEmisor: "",
+  contactoReceptor: "",
+  rutSolicita: "",
+  unidadProducto: "UN",
+  descuentoPct: "",
+  descripcionProducto: "",
   transportePatente: "",
   transporteRut: "",
   transporteChofer: "",
-  transporteDireccionDestino: ""
+  transporteRutChofer: "",
 });
 
 export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
   const [item, setItem] = useState(createEmptyItem());
-  const [ciudad, setCiudad] = useState("");
-
   const [showTransporte, setShowTransporte] = useState(false);
+  const [showEditarDetalles, setShowEditarDetalles] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [downloadInfo, setDownloadInfo] = useState(null);
 
+  // Resetear el formulario cada vez que se abra el modal
+  useEffect(() => {
+    if (isOpen) {
+      setItem(createEmptyItem());
+      setShowTransporte(false);
+      setShowEditarDetalles(false);
+      setIsFinished(false);
+      setDownloadInfo(null);
+    }
+  }, [isOpen]);
+
+  // Función para alternar la sección de transporte
   const toggleTransporte = () => {
     setShowTransporte((prev) => {
       const next = !prev;
@@ -78,42 +96,63 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     });
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      const company = JSON.parse(localStorage.getItem("selectedCompany") || "{}");
-      setCiudad(company?.ciudad || "");
-    }
-  }, [isOpen]);
+  // Función para alternar la sección de editar detalles adicionales
+  const toggleEditarDetalles = () => {
+    setShowEditarDetalles((prev) => {
+      const next = !prev;
 
-  const { totalNeto, iva, total } = useMemo(() => {
-    const neto = Number(item.cantidad || 0) * Number(item.precio || 0);
-    const ivaCalc = Math.round(neto * 0.19);
-    return { totalNeto: neto, iva: ivaCalc, total: neto + ivaCalc };
-  }, [item.cantidad, item.precio]);
+      if (prev === true && next === false) {
+        setItem((curr) => ({
+          ...curr,
+          ciudadEmisor: "Santiago",
+          telefonoEmisor: "",
+          contactoReceptor: "",
+          rutSolicita: "",
+          unidadProducto: "UN",
+          descuentoPct: "",
+          descripcionProducto: "",
+        }));
+      }
 
+      return next;
+    });
+  };
+
+  // Función para resetear el formulario a su estado inicial
   const resetForm = () => {
     setItem(createEmptyItem());
     setShowTransporte(false);
+    setShowEditarDetalles(false);
     setIsFinished(false);
     setDownloadInfo(null);
   };
 
+  // Función de validación del formulario antes de enviar
   const validate = () => {
     const errors = [];
+    const cantidadNum = Number(item.cantidad);
+    const precioNum = Number(item.precio);
 
+    if (!item.rutFacturar.trim() || !cleanRut(item.rutFacturar).includes("-")) errors.push("Rut a facturar");
+    if (!item.ciudadReceptor.trim()) errors.push("Ciudad receptor");
     if (!item.name.trim()) errors.push("Nombre del ítem");
-    if (Number(item.cantidad) <= 0) errors.push("Cantidad");
-    if (Number(item.precio) <= 0) errors.push("Precio");
+    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) errors.push("Cantidad");
+    if (!Number.isFinite(precioNum) || precioNum <= 0) errors.push("Precio");
 
-    const desc = Number(item.descuento);
-    if (desc < 0 || desc > 100) {
-      errors.push("El descuento debe estar entre 0 y 100%");
+    if (showEditarDetalles) {
+      const descuentoNum = Number(item.descuentoPct || 0);
+      if (!item.ciudadEmisor.trim()) errors.push("Ciudad emisor");
+      if (descuentoNum < 0 || descuentoNum > 100) {
+        errors.push("% Descuento (debe estar entre 0 y 100)");
+      }
     }
 
     const metodosValidos = ["1", "2", "3"]; 
     if (!metodosValidos.includes(String(item.metodo))) {
-      errors.push("Forma de pago inválida (Use 1: Contado, 2: Crédito)");
+      errors.push("Forma de pago inválida (1: Contado, 2: Crédito, 3: Sin Costo)");
     }
+
+    if (!item.fecha) errors.push("Fecha de emisión");
 
     if (errors.length > 0) {
       toast({
@@ -133,29 +172,34 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     setIsSubmitting(true);
 
     try {
-      const company = JSON.parse(localStorage.getItem("selectedCompany") || "{}");
-      const RUT_RECEPTOR = "78123097-9"; // RUT de Pruebas
-      // const RUT_RECEPTOR = company?.rut || "";
+      const rutReceptor = cleanRut(item.rutFacturar);
+      const rutSolicita = cleanRut(item.rutSolicita);
+      const descuentoNum = Number(item.descuentoPct || 0);
+      const hasTransporteData = [
+        item.transportePatente,
+        item.transporteRut,
+        item.transporteChofer,
+        item.transporteRutChofer,
+      ].some((value) => value?.trim());
 
       const dteJson = buildDteJson({
         TipoDTE: 33,
         Receptor: {
-          RUTRecep: RUT_RECEPTOR,
-          RznSocRecep: company?.razon_social,
-          CdadRecep: company?.ciudad,
+          RUTRecep: rutReceptor,
+          CdadRecep: item.ciudadReceptor.trim(),
         },
         Detalle: {
           NmbItem: item.name.trim(),
           QtyItem: Number(item.cantidad),
-          UniItem: item.unidad.trim(),
+          UniItem: (item.unidadProducto || "UN").trim(),
           PrcItem: Number(item.precio),
-          DescuentoPct: item.descuento || 0,
-          Descripcion: item.descripcion,
           Metodo: item.metodo,
           FchEmis: item.fecha,
-        },
-
-        ...(showTransporte
+          ...(descuentoNum > 0 ? { DescuentoPct: descuentoNum } : {}),
+          ...(item.descripcionProducto.trim()
+            ? { Descripcion: item.descripcionProducto.trim() }
+            : {}),
+          ...(showTransporte && hasTransporteData
             ? {
                 Transporte: {
                   Patente: item.transportePatente,
@@ -164,8 +208,22 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
                   RUTChofer: item.transporteRutChofer,
                 },
               }
-            : {})
+            : {}),
+        },
       });
+
+      if (showEditarDetalles) {
+        dteJson.Encabezado = dteJson.Encabezado || {};
+        dteJson.Encabezado.Receptor = {
+          ...(dteJson.Encabezado.Receptor || {}),
+          ...(item.contactoReceptor.trim() ? { Contacto: item.contactoReceptor.trim() } : {}),
+        };
+        dteJson.Encabezado.Emisor = {
+          ...(item.ciudadEmisor.trim() ? { CiudadOrigen: item.ciudadEmisor.trim() } : {}),
+          ...(item.telefonoEmisor.trim() ? { Telefono: item.telefonoEmisor.trim() } : {}),
+          ...(rutSolicita.includes("-") ? { RUTSolicita: rutSolicita } : {}),
+        };
+      }
 
       console.log("DTE JSON a enviar:", dteJson);
 
@@ -253,6 +311,25 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
           <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="rut_facturar">Rut a facturar</Label>
+                <Input
+                  id="rut_facturar"
+                  value={item.rutFacturar}
+                  onChange={(e) => setItem({ ...item, rutFacturar: e.target.value })}
+                  placeholder="12345678-9"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ciudad_receptor">Ciudad receptor</Label>
+                <Input
+                  id="ciudad_receptor"
+                  value={item.ciudadReceptor}
+                  onChange={(e) => setItem({ ...item, ciudadReceptor: e.target.value })}
+                />
+              </div>
+
               <div className="md:col-span-2 space-y-2">
                 <Label htmlFor="item_name">Nombre del ítem</Label>
                 <Input id="item_name" value={item.name} onChange={(e) => setItem({...item, name: e.target.value})} maxLength={80} />
@@ -260,29 +337,12 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
               <div className="space-y-2">
                 <Label htmlFor="item_cantidad">Cantidad</Label>
-                <Input id="item_cantidad" type="number" value={item.cantidad} onChange={(e) => setItem({...item, cantidad: e.target.value})} />
+                <Input id="item_cantidad" type="number" min="1" step="1" value={item.cantidad} onChange={(e) => setItem({...item, cantidad: e.target.value})} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="item_unidad">Unidad</Label>
-                <Input id="item_unidad" value={item.unidad} onChange={(e) => setItem({...item, unidad: e.target.value})} maxLength={10} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="item_precio">Precio Unitario</Label>
-                <Input id="item_precio" type="number" value={item.precio} onChange={(e) => setItem({...item, precio: e.target.value})} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="item_descuento">Descuento (%)</Label>
-                <Input
-                  id="item_descuento"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={item.descuento}
-                  onChange={(e) => setItem({...item, descuento: e.target.value})}
-                />
+                <Label htmlFor="item_precio">Precio</Label>
+                <Input id="item_precio" type="number" min="1" step="1" value={item.precio} onChange={(e) => setItem({...item, precio: e.target.value})} />
               </div>
 
               <div className="space-y-2">
@@ -307,16 +367,96 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
                   <SelectContent className="bg-zinc-900 text-white">
                     <SelectItem value="1">Contado</SelectItem>
                     <SelectItem value="2">Crédito</SelectItem>
-                    <SelectItem value="3">Sin Costo (Entrega gratuita)</SelectItem>
+                    <SelectItem value="3">Sin Costo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="item_descripcion">Descripción</Label>
-                <Input id="item_descripcion" value={item.descripcion} onChange={(e) => setItem({...item, descripcion: e.target.value})} />
-              </div>
             </div>
+
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={toggleEditarDetalles}
+                className="w-full md:w-auto"
+              >
+                {showEditarDetalles ? "Ocultar editar detalles" : "Editar detalles"}
+              </Button>
+            </div>
+
+            {showEditarDetalles && (
+              <div className="md:col-span-2 mt-2 p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ciudad_emisor">Ciudad emisor</Label>
+                    <Input
+                      id="ciudad_emisor"
+                      value={item.ciudadEmisor}
+                      onChange={(e) => setItem({ ...item, ciudadEmisor: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="telefono_emisor">Teléfono emisor</Label>
+                    <Input
+                      id="telefono_emisor"
+                      value={item.telefonoEmisor}
+                      onChange={(e) => setItem({ ...item, telefonoEmisor: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contacto_receptor">Contacto Receptor</Label>
+                    <Input
+                      id="contacto_receptor"
+                      value={item.contactoReceptor}
+                      onChange={(e) => setItem({ ...item, contactoReceptor: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rut_solicita">Rut solicita</Label>
+                    <Input
+                      id="rut_solicita"
+                      value={item.rutSolicita}
+                      onChange={(e) => setItem({ ...item, rutSolicita: e.target.value })}
+                      placeholder="12345678-9"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="unidad_producto">Unidad del producto</Label>
+                    <Input
+                      id="unidad_producto"
+                      value={item.unidadProducto}
+                      onChange={(e) => setItem({ ...item, unidadProducto: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="descuento_pct">% Descuento</Label>
+                    <Input
+                      id="descuento_pct"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={item.descuentoPct}
+                      onChange={(e) => setItem({ ...item, descuentoPct: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="descripcion_producto">Descripción del producto</Label>
+                    <textarea
+                      id="descripcion_producto"
+                      value={item.descripcionProducto}
+                      onChange={(e) => setItem({ ...item, descripcionProducto: e.target.value })}
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background min-h-[110px] resize-y"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-3">
               <Button
@@ -351,7 +491,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="transporte_dir">RUT Chofer</Label>
+                    <Label htmlFor="transporte_rut_chofer">RUT Chofer</Label>
                     <Input
                       id="transporte_rut_chofer"
                       value={item.transporteRutChofer}
@@ -370,17 +510,6 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
                 </div>
               </div>
             )}
-
-            <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-1 mt-2">
-              <div className="flex justify-between text-sm text-zinc-400">
-                <span>Neto:</span>
-                <span>${totalNeto.toLocaleString("es-CL")}</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold pt-2 border-t border-white/10">
-                <span>Total DTE:</span>
-                <span className="text-blue-400">${total.toLocaleString("es-CL")}</span>
-              </div>
-            </div>
 
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>

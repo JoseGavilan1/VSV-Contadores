@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Send, FileText, TrendingUp, Loader2 
+  Send, FileText, Loader2 
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useSii } from '@/contexts/SiiContext.jsx';
