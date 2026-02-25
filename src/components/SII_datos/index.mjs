@@ -1,8 +1,7 @@
-// index.mjs
 import { iniciarNavegador, loginSII } from './sii_login.mjs';
 import { extraerDatosTributarios } from './sii_extraccion.mjs';
+import { guardarEmpresa } from './sii_database.mjs'; 
 
-// Función para imprimir bonito en la terminal
 function imprimirBoucher(datos) {
     console.log("\n=======================================================");
     console.log("🏢 DATOS PERSONALES Y TRIBUTARIOS EXTRAÍDOS");
@@ -42,14 +41,13 @@ async function main() {
         browser = await iniciarNavegador();
         const page = await browser.newPage();
         
-        // 1. Hacer Login
         await loginSII(page, credencialesPrueba.rutCompleto, credencialesPrueba.clave);
-        
-        // 2. Extraer los datos
         const datosEmpresa = await extraerDatosTributarios(page);
         
-        // 3. Imprimir el resultado ordenado
         imprimirBoucher(datosEmpresa);
+
+        // Subir los datos a Supabase de forma segura
+        await guardarEmpresa(datosEmpresa);
 
     } catch (error) {
         console.error("\n❌ Ocurrió un error en el proceso:", error.message);
