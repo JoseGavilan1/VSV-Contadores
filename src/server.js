@@ -10,7 +10,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import { corsOptions, apiLimiter } from './config/security.js';
 
-import fs from 'node:fs';
+import fs, { mkdir } from 'node:fs';
 
 // Database
 import { pool } from "./database/db.js";
@@ -84,8 +84,8 @@ const cleanTmpFolder = () => {
   const folderPath = path.join(process.cwd(), 'tmp');
 
   if (!fs.existsSync(folderPath)) {
-    console.log("La carpeta 'tmp' no existe.");
-    return;
+    fs.mkdirSync(folderPath, { recursive: true });
+    console.log("📁 La carpeta 'tmp' no existía y fue creada.");
   }
 
   const files = fs.readdirSync(folderPath);
