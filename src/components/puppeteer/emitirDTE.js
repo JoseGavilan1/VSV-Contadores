@@ -407,9 +407,9 @@ export async function emitirDteConPuppeteer(dteJson) {
     // pero necesitamos rut para emitir facturas
     //
 
+    /*
     await clickByExactText(page, 'Validar y visualizar');
 
-    /*
     // 7. Proceso de Firma Electrónica
     await clickByExactText(page, 'Firmar');
     await clickByExactText(page, 'Firmar');
@@ -451,12 +451,14 @@ export async function emitirDteConPuppeteer(dteJson) {
     await fs.promises.writeFile(finalPath, finalBuffer);
     */
 
-    return { ok: true, mensaje: "DTE validado exitosamente." };
+    return { ok: true, mensaje: "DTE validado exitosamente."};
   } catch (err) {
     console.error(`❌ Error en Emisión: ${err.message}`);
     return { ok: false, error: err.message };
   } finally {
     page.off("dialog", onDialog);
   }
+
+  // rut, contaco del cliente, nombre del item, precio
 }
 
