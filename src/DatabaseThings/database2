@@ -352,7 +352,7 @@ INSERT INTO plan (nombre, precio_base) VALUES
 ('OFV', 0),
 ('DE BAJA', 0);
 
-INSERT INTO servicio (nombre, slug, categoria, es_critico, description) VALUES
+INSERT INTO servicio (nombre, slug, categoria, es_critico, descripcion) VALUES
 ('Declaración de Impuestos Mensual IVA', 'iva-mensual', 'Tributaria', true, 'Declaración de formulario F29 ante el SII.'),
 ('Conciliación bancaria', 'conciliacion-bancaria', 'Contabilidad', false, 'Cruce de cartolas bancarias con registros contables.'),
 ('Clasificación de Cuentas', 'clasificacion-cuentas', 'Contabilidad', false, 'Ordenamiento contable de movimientos.'),
