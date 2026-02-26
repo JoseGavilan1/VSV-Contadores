@@ -1,6 +1,6 @@
 // sii_database.mjs
 import crypto from 'crypto';
-import { pool } from '../database/db.js'; 
+import { pool } from '../db.js'; 
 
 // --- 1. LÓGICA DE CIFRADO (Equivalente exacto al Python) ---
 // Extraemos la clave desde las variables de entorno, igual que en Python.
@@ -12,7 +12,6 @@ export function encryptAES(text) {
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
         
-        // El script de Python usa PKCS7 padding automático
         let encrypted = cipher.update(text, 'utf8', 'hex');
         encrypted += cipher.final('hex');
         
@@ -45,7 +44,6 @@ export async function verificarEmpresaExistente(rut) {
 }
 
 // --- 3. GUARDADO MAESTRO ---
-// IMPORTANTE: Ahora pasamos la 'clave' del SII como segundo parámetro
 export async function guardarEmpresa(datos, claveSii = '') {
     console.log(`\n[+] Inyectando empresa en el Búnker con la estructura oficial...`);
 
@@ -74,6 +72,11 @@ export async function guardarEmpresa(datos, claveSii = '') {
         const rutHash = generateHash(datos.rut);
         const rutRepEncrypted = encryptAES(rutRep);
 
+        // --- TRADUCTOR DE ESTADOS ESTRICTOS (F29) ---
+        // Aseguramos que solo pasen los valores permitidos por tu base de datos
+        const textoCumplimiento = (datos.estadoCumplimiento || '').toUpperCase();
+        const estadoF29Valido = textoCumplimiento.includes('DECLARADO') ? 'DECLARADO' : 'PENDIENTE';
+
         // D. Insertar en tabla EMPRESA (Usando las columnas exactas del CRM)
         const queryEmpresa = `
             INSERT INTO empresa (
@@ -95,7 +98,7 @@ export async function guardarEmpresa(datos, claveSii = '') {
             datos.correo !== 'No registra' ? datos.correo : null,
             `https://placehold.co/200?text=${datos.razonSocial.substring(0, 2).toUpperCase()}`, // Logo
             'AL DIA', // Por defecto 
-            datos.estadoCumplimiento?.substring(0, 15) || 'PENDIENTE',
+            estadoF29Valido, // <--- Estado estrictamente validado
             0, // impuesto_pagar
             0, // dts_mensuales
             100, // score inicial
@@ -123,7 +126,7 @@ export async function guardarEmpresa(datos, claveSii = '') {
         const siiRutEncrypted = encryptAES(datos.rut); 
         const siiEmailEncrypted = encryptAES(datos.correo !== 'No registra' ? datos.correo : 'sin@correo.cl');
         const siiPasswordEncrypted = encryptAES(claveSii);
-        const webPasswordEncrypted = encryptAES('por_asignar'); // o generar una clave aleatoria
+        const webPasswordEncrypted = encryptAES('por_asignar');
 
         const queryCreds = `
             INSERT INTO empresa_credenciales (
@@ -134,7 +137,7 @@ export async function guardarEmpresa(datos, claveSii = '') {
             empresaId, siiRutEncrypted, siiEmailEncrypted, siiPasswordEncrypted, webPasswordEncrypted
         ]);
 
-        console.log(`[+] ¡Registro completado! Todos los datos encriptados y listos.`);
+        console.log(`[+] ¡Registro completado! Todos los datos encriptados y guardados en tu CRM.`);
         return { id: empresaId };
 
     } catch (error) {
