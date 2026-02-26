@@ -8,1449 +8,1449 @@
       "activo": true
     },
     {
-      "nombre": "Benjamín Sergio Riquelme Valdés",
-      "rut": "10457922-1",
-      "email": "amarogajardo@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "José Sebastián Peña Tapia",
-      "rut": "18213719-7",
-      "email": "jose68@example.org",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Marco Bruno Díaz Carrasco",
-      "rut": "14983506-7",
-      "email": "qnavarro@example.net",
+      "nombre": "Christian Johan Miranda Andrade",
+      "rut": "11019981-3",
+      "email": "garridolorena@example.net",
       "rol": "Consultor",
       "activo": false
     },
     {
-      "nombre": "María Silvana Saavedra Ponce",
-      "rut": "9862511-9",
-      "email": "fernandavelasquez@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Julieta Paola Hernández Hurtado",
-      "rut": "18025182-0",
-      "email": "zamoranoelena@example.com",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Fabiola Sepúlveda",
-      "rut": "19229125-9",
-      "email": "domingo43@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Matías Martín Tapia Ortiz",
-      "rut": "8310288-8",
-      "email": "paula00@example.org",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Matilde Pino",
-      "rut": "19923811-6",
-      "email": "ximena15@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Álvaro Encina Berríos",
-      "rut": "22832089-7",
-      "email": "javierlobos@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Veronica Nathalie Almonacid Reyes",
-      "rut": "16085152-K",
-      "email": "rvasquez@example.org",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Bárbara Javiera González Uribe",
-      "rut": "23556342-8",
-      "email": "raullopez@example.net",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Cindy Vásquez",
-      "rut": "14626502-2",
-      "email": "barriosjaviera@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Antonia Nelly Moreno Muñoz",
-      "rut": "22676122-5",
-      "email": "emazepeda@example.net",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Jaime Andrés Martínez Abarca",
-      "rut": "9921237-3",
-      "email": "lcabrera@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Diego Luis Poblete Alarcón",
-      "rut": "23627264-8",
-      "email": "liliana63@example.com",
+      "nombre": "Constanza Riquelme",
+      "rut": "12304945-4",
+      "email": "sofia35@example.net",
       "rol": "Cliente",
       "activo": false
     },
     {
-      "nombre": "Bernardita Poblete Alarcón",
-      "rut": "23970464-6",
-      "email": "hvelasquez@example.com",
+      "nombre": "Juan Arteaga",
+      "rut": "25820256-2",
+      "email": "karlalobos@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Jorge Gajardo Vera",
+      "rut": "11945724-6",
+      "email": "myriammartinez@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Juan Suárez Fuentealba",
+      "rut": "9807836-3",
+      "email": "drojas@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Johana Catalina Novoa Silva",
+      "rut": "21993259-6",
+      "email": "jguajardo@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Felipe Román Zavala Santana",
+      "rut": "6512274-K",
+      "email": "velasquezamelia@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Carlos Christian Pincheira Palma",
+      "rut": "15135484-K",
+      "email": "jorge02@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Isabel Camila González Vargas",
+      "rut": "20112614-2",
+      "email": "mariasandoval@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Christopher Juan Zambrano Román",
+      "rut": "13685718-5",
+      "email": "juancisternas@example.org",
+      "rol": "Consultor",
+      "activo": false
+    },
+    {
+      "nombre": "Juan Héctor Villarroel Venegas",
+      "rut": "14531557-3",
+      "email": "laura24@example.net",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Christian Ángel Méndez Riquelme",
+      "rut": "21120273-4",
+      "email": "icontreras@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Héctor Felipe Rodríguez Zúñiga",
+      "rut": "9184545-8",
+      "email": "florencianavarro@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "José Williams Soto Martinez",
+      "rut": "11307202-4",
+      "email": "luis85@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Ruby Johana Ojeda Pacheco",
+      "rut": "22002080-0",
+      "email": "barrerajessica@example.net",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Evelyn Geraldine Galaz Muñoz",
+      "rut": "19221227-8",
+      "email": "ana64@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Sofía Solís Mella",
+      "rut": "11117311-7",
+      "email": "jorge64@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Máximo Leonardo Espinoza Cornejo",
+      "rut": "25432426-4",
+      "email": "ovalencia@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Alfredo Juan Ponce Chamorro",
+      "rut": "5573141-1",
+      "email": "nicolalvarez@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Mariela María Rivera Flores",
+      "rut": "10949811-4",
+      "email": "brandon53@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Aurora Ignacia Paredes Díaz",
+      "rut": "5790259-0",
+      "email": "udelgado@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Carlos Pizarro López",
+      "rut": "18282072-5",
+      "email": "maria34@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Norberto Carlos Solar Ortiz",
+      "rut": "25272237-8",
+      "email": "celinda38@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Álvaro Zavala Altamirano",
+      "rut": "9628433-0",
+      "email": "jacqueline46@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Isabella Ávila Medina",
+      "rut": "17751227-3",
+      "email": "gonzalovega@example.net",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Carmen Ana Fuentealba Valenzuela",
-      "rut": "9795036-9",
-      "email": "rorellana@example.net",
+      "nombre": "Emma Orfelina Ulloa Jerez",
+      "rut": "7548562-K",
+      "email": "prietocamila@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Violeta María Fuentes Araya",
+      "rut": "17868307-1",
+      "email": "jorgesanhueza@example.com",
+      "rol": "Cliente",
+      "activo": false
+    },
+    {
+      "nombre": "Millaray Riquelme",
+      "rut": "14184005-3",
+      "email": "riverabeatriz@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "María Cofré",
+      "rut": "20348116-0",
+      "email": "tapiajuan@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Sebastián José Monsalve Oyarzún",
+      "rut": "18964210-5",
+      "email": "anacampos@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Paulette María Cisternas Peralta",
+      "rut": "15963006-4",
+      "email": "perezraul@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "María Vergara Espinoza",
+      "rut": "17587058-K",
+      "email": "pamela57@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Raúl Rivera",
+      "rut": "11365169-5",
+      "email": "bvasquez@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Jacinta Cofré",
+      "rut": "8033983-6",
+      "email": "henriquezmatias@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Axel Clemente Suárez Molina",
+      "rut": "15382354-5",
+      "email": "jose53@example.org",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Celeste Lagos Choque",
-      "rut": "5061468-9",
-      "email": "mirandafrancisco@example.net",
+      "nombre": "Francisco Mariano Romero Osorio",
+      "rut": "7082174-5",
+      "email": "castillocristian@example.com",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Carolina Valencia Parraguez",
-      "rut": "12104950-3",
-      "email": "calderonjorge@example.org",
+      "nombre": "Mathias Cuevas Alarcón",
+      "rut": "11755917-3",
+      "email": "sebastiandiaz@example.org",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Carmen Molina Ramírez",
-      "rut": "7084541-5",
-      "email": "mariamamani@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Carla Valeria Marchant Rivera",
-      "rut": "5189983-0",
-      "email": "nathaly13@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Roberto García Morales",
-      "rut": "12996289-5",
-      "email": "gonzalezsantiago@example.com",
-      "rol": "Cliente",
-      "activo": false
-    },
-    {
-      "nombre": "Benjamin Salazar Carvajal",
-      "rut": "14868049-3",
-      "email": "eulloa@example.org",
-      "rol": "Cliente",
-      "activo": false
-    },
-    {
-      "nombre": "Almendra Ignacia Castillo Muñoz",
-      "rut": "17832045-9",
-      "email": "mejiasmaria@example.net",
+      "nombre": "Jorge Piña Herrera",
+      "rut": "14064709-8",
+      "email": "tmunoz@example.org",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Estefanía Torres",
-      "rut": "20376831-1",
-      "email": "becerraluis@example.org",
+      "nombre": "Juana Josefina Bravo Seguel",
+      "rut": "16287901-4",
+      "email": "maximo25@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Luis Juan Inzunza Almonacid",
-      "rut": "18942163-K",
-      "email": "vargaseusebio@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Victoria Irma Núñez Catalán",
-      "rut": "9072962-4",
-      "email": "cvargas@example.com",
+      "nombre": "Ignacio Rojas",
+      "rut": "23147316-5",
+      "email": "rosagalaz@example.org",
       "rol": "Consultor",
-      "activo": false
+      "activo": true
     },
     {
-      "nombre": "Matías León",
-      "rut": "18250755-5",
-      "email": "eduardomunoz@example.net",
+      "nombre": "Dominique Sonia Morales Blanco",
+      "rut": "6078881-2",
+      "email": "ecastro@example.org",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "José Burgos Ibarra",
-      "rut": "10324107-3",
-      "email": "auroraguzman@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Tatiana Correa Millán",
-      "rut": "15498719-3",
-      "email": "joaquinmartinez@example.org",
+      "nombre": "Emilia Erna Pino López",
+      "rut": "13362190-3",
+      "email": "blancacisternas@example.com",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Luis Christofer Sandoval Aguilera",
-      "rut": "20742733-0",
-      "email": "kfigueroa@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Daniel Martín Ojeda Padilla",
-      "rut": "9272022-5",
-      "email": "franciscoortega@example.net",
+      "nombre": "Erica María Jiménez Vera",
+      "rut": "25772046-2",
+      "email": "juanvelasquez@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Elizabeth Silva",
-      "rut": "15405466-9",
-      "email": "luis70@example.org",
+      "nombre": "Cristian Poblete",
+      "rut": "17058660-3",
+      "email": "luis48@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Melissa Ana Maturana Videla",
-      "rut": "6396471-9",
-      "email": "soniauribe@example.com",
+      "nombre": "Félix Benjamín Torres Pérez",
+      "rut": "20483266-8",
+      "email": "zunildazepeda@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Margarita Karina Gallardo Delgado",
-      "rut": "23472117-8",
-      "email": "victor36@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Gonzalo Mora Echeverría",
-      "rut": "25489604-7",
-      "email": "mariacerda@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jorge Guzmán González",
-      "rut": "13838598-1",
-      "email": "vnorambuena@example.org",
-      "rol": "Cliente",
-      "activo": false
-    },
-    {
-      "nombre": "Gloria Olmos Vidal",
-      "rut": "15389830-8",
-      "email": "contrerascecilia@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Cristina Collao Donoso",
-      "rut": "20419004-6",
-      "email": "octavio98@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "José González-Ojeda Astete",
-      "rut": "14090013-3",
-      "email": "mariamorales@example.org",
-      "rol": "Cliente",
-      "activo": false
-    },
-    {
-      "nombre": "Maritza Francisca Silva Saavedra",
-      "rut": "10106713-0",
-      "email": "juan08@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Pedro Escobar Pereira",
-      "rut": "23863802-K",
-      "email": "maria61@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Marina Valentina Tapia Riquelme",
-      "rut": "7052669-7",
-      "email": "madariagaandrea@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jorge Juan Rosas Espinoza",
-      "rut": "16582472-5",
-      "email": "daniellopez@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "María Letelier Araya",
-      "rut": "23228624-5",
-      "email": "hectorde-la-fuente@example.com",
+      "nombre": "Julián Pascual Morales Serrano",
+      "rut": "13136387-7",
+      "email": "macarena15@example.org",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Mauricio Joel Inostroza Rivera",
-      "rut": "14120489-0",
-      "email": "ocortes@example.com",
+      "nombre": "Luis Ignacio Jara Rodríguez",
+      "rut": "18531311-5",
+      "email": "teresacontreras@example.org",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Patricia Nury Quiroz Vergara",
-      "rut": "19669933-3",
-      "email": "yrosales@example.com",
+      "nombre": "María Olivia Valdés Torres",
+      "rut": "8088220-3",
+      "email": "agarcia@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Aracely Juana Fuenzalida Castro",
+      "rut": "22059282-0",
+      "email": "kcontreras@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Javiera Anita Acuña Osorio",
+      "rut": "6076112-4",
+      "email": "jparedes@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Carmen Ceballos Baeza",
+      "rut": "24318964-0",
+      "email": "maria99@example.net",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Rodrigo Cárdenas González",
-      "rut": "8912792-0",
-      "email": "henriquezkatherine@example.net",
+      "nombre": "Bernardo Enrique Burgos Bravo",
+      "rut": "16118060-2",
+      "email": "figueroamaria@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Vicente Juan Díaz González",
-      "rut": "10332528-5",
-      "email": "grozas@example.com",
-      "rol": "Cliente",
+      "nombre": "Macarena Silva Aravena",
+      "rut": "8776476-1",
+      "email": "rebolledogaspar@example.org",
+      "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Lucinda Contreras",
-      "rut": "23113011-K",
-      "email": "rodrigocruz@example.net",
-      "rol": "Cliente",
+      "nombre": "Cecilia Maldonado Ovalle",
+      "rut": "13445506-3",
+      "email": "oscarcornejo@example.net",
+      "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Josefa Sofía Véliz Rojas",
-      "rut": "24306316-7",
-      "email": "cesarmunoz@example.net",
+      "nombre": "Sergio Diego Rodríguez López",
+      "rut": "22113537-7",
+      "email": "jaraluis@example.net",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Ignacio Véliz Zapata",
-      "rut": "19051715-2",
-      "email": "mcifuentes@example.org",
-      "rol": "Consultor",
-      "activo": false
-    },
-    {
-      "nombre": "Antonia Oriana Rojas Plaza",
-      "rut": "16920325-3",
-      "email": "fernandanunez@example.com",
+      "nombre": "Sebastián Javier Acosta Salinas",
+      "rut": "6426681-0",
+      "email": "miguelvaldebenito@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Jorge Castro Bustos",
-      "rut": "25534831-0",
-      "email": "caroabigail@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "María Isabel Aravena Becerra",
-      "rut": "20603954-K",
-      "email": "garaybraulio@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Francisco Juan Contreras Valderrama",
-      "rut": "23744354-3",
-      "email": "yanezelena@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Miguel Carlos Vega Muñoz",
-      "rut": "15883261-5",
-      "email": "salasmarco@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Ernesto Gabriel Cortez Hernández",
-      "rut": "9654636-K",
-      "email": "barrospatricio@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "María Riffo Garrido",
-      "rut": "20112507-3",
-      "email": "mariareyes@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Consuelo Tiare Lagos Flores",
-      "rut": "25632411-3",
-      "email": "belenjara@example.org",
-      "rol": "Cliente",
-      "activo": false
-    },
-    {
-      "nombre": "Constanza Trinidad Donoso Soto",
-      "rut": "5383083-8",
-      "email": "ecifuentes@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Vicente Bravo",
-      "rut": "8271316-6",
-      "email": "rbugueno@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Nicole Katherine León Muñoz",
-      "rut": "15400771-7",
-      "email": "angelina90@example.net",
-      "rol": "Consultor",
-      "activo": false
-    },
-    {
-      "nombre": "Isabel García",
-      "rut": "15658815-6",
-      "email": "nmunoz@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Rodrigo Claudio Flores Tapia",
-      "rut": "18689881-8",
-      "email": "valdiviamonica@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "María Jenny Galaz Araya",
-      "rut": "8863974-K",
-      "email": "fmunoz@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "José Guerrero Velásquez",
-      "rut": "21354100-5",
-      "email": "estermunoz@example.com",
-      "rol": "Consultor",
-      "activo": false
-    },
-    {
-      "nombre": "Tomás Franco Gálvez Leiva",
-      "rut": "17837403-6",
-      "email": "constanzafuentes@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Cristian Jonatan Villalobos Villalobos",
-      "rut": "9939812-4",
-      "email": "carmen85@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Ximena Beltrán Leiva",
-      "rut": "14343532-6",
-      "email": "sepulvedacarlos@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "José Ignacio González Rodríguez",
-      "rut": "16773043-4",
-      "email": "paredesvaleria@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Javiera Daniela Soto Castro",
-      "rut": "10717355-2",
-      "email": "bernarda95@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Julia Suárez Garrido",
-      "rut": "14865244-9",
-      "email": "erikaurbina@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jaime Sergio Gallegos Cruz",
-      "rut": "15058953-3",
-      "email": "wluengo@example.org",
+      "nombre": "Gaspar Rodríguez",
+      "rut": "19812689-6",
+      "email": "ygodoy@example.org",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Juan Ibacache",
-      "rut": "13323360-1",
-      "email": "sepulvedajuan@example.com",
+      "nombre": "Pablo Juan Navarrete González",
+      "rut": "22888827-3",
+      "email": "leon13@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Diego Lagos Miranda",
+      "rut": "16065240-3",
+      "email": "yorellana@example.org",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Hernán Céspedes Duarte",
-      "rut": "20265127-5",
-      "email": "pintomaria@example.net",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Mauricio Carlos Astorga Miranda",
-      "rut": "15838012-9",
-      "email": "dcarvajal@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Florencia Rozas",
-      "rut": "25606597-5",
-      "email": "alejandro97@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Kevin Osorio Guevara",
-      "rut": "11340726-3",
-      "email": "san-martinfernanda@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Nancy Viviana Faúndez Valdés",
-      "rut": "13639262-K",
-      "email": "carlos02@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Elsa Catalán",
-      "rut": "18873661-0",
-      "email": "gomezmanuel@example.com",
+      "nombre": "Gerson Luis Quintana Oyarzo",
+      "rut": "16505033-9",
+      "email": "sebastian11@example.com",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Benjamín Francisco Hernández Reyes",
-      "rut": "20864718-0",
-      "email": "vverdugo@example.org",
+      "nombre": "Marjorie Diana Galleguillos Navarro",
+      "rut": "15984376-9",
+      "email": "ineira@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Margarita Blanca Gómez Becerra",
-      "rut": "24716051-5",
-      "email": "ooyarzo@example.net",
+      "nombre": "Marjorie Tiare Varela Blanco",
+      "rut": "5417599-K",
+      "email": "mauriciogutierrez@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "María Bianca Morales Donoso",
-      "rut": "8761131-0",
-      "email": "ldinamarca@example.com",
+      "nombre": "Bernardo Sepúlveda",
+      "rut": "10076202-1",
+      "email": "andradealejandro@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Marta Vanesa Espinoza Moreno",
-      "rut": "7985755-6",
-      "email": "fdiaz@example.org",
+      "nombre": "Joaquín Molina",
+      "rut": "21142994-1",
+      "email": "tcastillo@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Barbara Catalina Reyes Norambuena",
-      "rut": "16067146-7",
-      "email": "fpizarro@example.com",
+      "nombre": "Lucy Alexandra Muñoz Caro",
+      "rut": "20839258-1",
+      "email": "gonzaloolivares@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Carla Carol Aliaga Cavieres",
-      "rut": "20320134-6",
-      "email": "kahumada@example.net",
+      "nombre": "Elizabeth Gómez",
+      "rut": "5902784-0",
+      "email": "normapavez@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Raúl Rodrigo Donoso Navarrete",
+      "rut": "11984083-K",
+      "email": "claudio85@example.net",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Jonathan Víctor Díaz Segura",
+      "rut": "10618759-2",
+      "email": "marquezerika@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Paula Vera González",
+      "rut": "9385812-3",
+      "email": "dalvarez@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Juan Kevin Ramírez González",
+      "rut": "21619904-9",
+      "email": "rodriguezgaspar@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Natalia Vera",
+      "rut": "5638244-5",
+      "email": "josereyes@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Yesenia Rodríguez",
+      "rut": "20505638-6",
+      "email": "claudiarocha@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Francisco Iván Hormazábal Pizarro",
+      "rut": "21064900-K",
+      "email": "georginagajardo@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Ricardo Guillermo Urrutia Cifuentes",
+      "rut": "23755161-3",
+      "email": "leandrohenriquez@example.net",
       "rol": "Cliente",
       "activo": false
     },
     {
-      "nombre": "Anahí Fernández Beltrán",
-      "rut": "23300496-0",
-      "email": "molinacarlos@example.com",
+      "nombre": "Nelson Martínez",
+      "rut": "7683571-3",
+      "email": "paola48@example.org",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Marisol Jacqueline Riquelme Ortega",
-      "rut": "14741280-0",
-      "email": "facundo79@example.org",
+      "nombre": "Ariel Bahamonde Mella",
+      "rut": "8426406-7",
+      "email": "esther80@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Violeta María Fernández Núñez",
-      "rut": "12825478-1",
-      "email": "martaalvarado@example.net",
+      "nombre": "Jorge José Ruiz Valenzuela",
+      "rut": "11432825-1",
+      "email": "camila21@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Abraham Armando Cornejo Vásquez",
-      "rut": "13879734-1",
-      "email": "carlossilva@example.org",
+      "nombre": "María Martínez Bórquez",
+      "rut": "17776199-0",
+      "email": "ortizflorencia@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Marta Tapia Calderón",
-      "rut": "9748465-1",
-      "email": "cvergara@example.org",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Mónica Vidal Correa",
-      "rut": "19465466-9",
-      "email": "wrojas@example.org",
+      "nombre": "Moisés Felipe Zambrano Vidal",
+      "rut": "16746047-K",
+      "email": "manriquezhernan@example.org",
       "rol": "Cliente",
       "activo": false
     },
     {
-      "nombre": "Antonella Martina Aros Leal",
-      "rut": "5694890-2",
-      "email": "luisa03@example.org",
+      "nombre": "Maite Álvarez Contreras",
+      "rut": "7828160-K",
+      "email": "constanzasanchez@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Sandra Lorca Leyton",
+      "rut": "23340185-4",
+      "email": "tmunoz@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Carlos Salinas Olivares",
+      "rut": "15301737-9",
+      "email": "jaragary@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Ricardo Pacheco",
+      "rut": "20309822-7",
+      "email": "mendezhilda@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Luis López Morales",
+      "rut": "13885559-7",
+      "email": "ffernandez@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Fermín Carreño Contreras",
+      "rut": "12391507-0",
+      "email": "vpoblete@example.com",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Genaro Felipe Martínez Aliaga",
-      "rut": "8788336-1",
-      "email": "mariavera@example.org",
+      "nombre": "Jacqueline Lagos Guzmán",
+      "rut": "11630495-3",
+      "email": "evillalobos@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Carolina Pineda Valenzuela",
-      "rut": "12388463-9",
-      "email": "xvasquez@example.net",
-      "rol": "Administrador",
+      "nombre": "Pedro Facundo Parra Sepúlveda",
+      "rut": "17846605-4",
+      "email": "agustinasaez@example.org",
+      "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Ana Santana Silva",
-      "rut": "11500081-0",
-      "email": "pedroaguilar@example.org",
+      "nombre": "Maite María Maldonado Vallejos",
+      "rut": "13881016-K",
+      "email": "ymunoz@example.org",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Samuel Olmedo",
-      "rut": "23382716-9",
-      "email": "diego58@example.org",
+      "nombre": "Antonia Francisca Cerda Cárdenas",
+      "rut": "14419588-4",
+      "email": "margaritamatamala@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Catalina Ana Candia Maldonado",
-      "rut": "6119938-1",
-      "email": "bustoscristobal@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Nancy Cárdenas",
-      "rut": "7466421-0",
-      "email": "guillermomontero@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Claudio Carlos Pavez Ossandón",
-      "rut": "6226602-3",
-      "email": "jaramartina@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Andrea Camila Bustos Montecino",
-      "rut": "18491609-6",
-      "email": "roblessebastian@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jonathan Alonso Herrera Ramos",
-      "rut": "6007470-4",
-      "email": "ricardo85@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Ana María Olguín Córdova",
-      "rut": "11635712-7",
-      "email": "elena33@example.com",
-      "rol": "Consultor",
-      "activo": false
-    },
-    {
-      "nombre": "Mercedes Castillo",
-      "rut": "25073827-7",
-      "email": "domingovillarroel@example.org",
-      "rol": "Consultor",
-      "activo": false
-    },
-    {
-      "nombre": "David Felipe Pavez Moreno",
-      "rut": "18064180-7",
-      "email": "julia49@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Delia Emilia Fuentes Silva",
-      "rut": "24399948-0",
-      "email": "qhidalgo@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Francisco Orellana Valdivia",
-      "rut": "21379013-7",
-      "email": "pablo81@example.com",
+      "nombre": "Maximiliano Vicente Cortés Villalobos",
+      "rut": "7751954-8",
+      "email": "juanbarrios@example.com",
       "rol": "Cliente",
       "activo": false
     },
     {
-      "nombre": "Ignacio Herman Gómez Cortés",
-      "rut": "17002530-K",
-      "email": "francofuentes@example.net",
+      "nombre": "Catalina Elena Concha Herrera",
+      "rut": "25143804-8",
+      "email": "mariela51@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Simón José San Martín Aravena",
-      "rut": "23322913-K",
-      "email": "mavalos@example.org",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "Constanza Carla Corvalán Díaz",
-      "rut": "16150331-2",
-      "email": "rodolfoibanez@example.com",
+      "nombre": "Rosa María Flores Muñoz",
+      "rut": "17045044-2",
+      "email": "durannidia@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Hugo Cristian Brito Aránguiz",
-      "rut": "6010613-4",
-      "email": "maria90@example.com",
-      "rol": "Administrador",
-      "activo": true
-    },
-    {
-      "nombre": "María Sandoval",
-      "rut": "19758727-K",
-      "email": "adelgado@example.com",
+      "nombre": "Martín Ignacio González Álvarez",
+      "rut": "8395333-0",
+      "email": "hector70@example.org",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Marcelo Moreno",
-      "rut": "5631583-7",
-      "email": "karenalarcon@example.org",
-      "rol": "Administrador",
+      "nombre": "Sandra Rubio",
+      "rut": "6842792-4",
+      "email": "julieta91@example.org",
+      "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Cristian Guillermo Fuentes Quiroz",
-      "rut": "24044518-2",
-      "email": "jenniferramos@example.net",
+      "nombre": "Ítalo Ampuero",
+      "rut": "20009091-8",
+      "email": "wfaundez@example.net",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Carmen Daniela Muñoz Bravo",
-      "rut": "10016900-2",
-      "email": "rsanchez@example.com",
+      "nombre": "Sebastián Castro-Miranda Baeza",
+      "rut": "18673252-9",
+      "email": "mgalvez@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Lucía Carolina Valderrama Muñoz",
+      "rut": "11733024-9",
+      "email": "saavedraivan@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "María Inés Cordero Cortés",
+      "rut": "19130643-0",
+      "email": "mgallardo@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Thomas Julián Moreno Avilés",
+      "rut": "23726524-6",
+      "email": "molguin@example.net",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Jorge Castillo Mancilla",
-      "rut": "22994537-8",
-      "email": "evelyncalderon@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jonathan Iván Reyes Moraga",
-      "rut": "15704601-2",
-      "email": "nramirez@example.com",
+      "nombre": "Adolfo Medina Soto",
+      "rut": "24428697-6",
+      "email": "graciela78@example.com",
       "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Rodolfo Salas Guajardo",
-      "rut": "12346314-5",
-      "email": "zamoracamila@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Patricio Claudio Álvarez González",
-      "rut": "18173485-K",
-      "email": "rodrigobarrera@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Claudia Olivares",
-      "rut": "11256317-2",
-      "email": "catherine21@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Jesus González Núñez",
-      "rut": "24425195-1",
-      "email": "cbaeza@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Jorge Hernández Márquez",
-      "rut": "8428860-8",
-      "email": "thenriquez@example.org",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Alicia Diana Quispe Riquelme",
-      "rut": "24256193-7",
-      "email": "manuel53@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Cristóbal Silva González",
-      "rut": "19150361-9",
-      "email": "vasquezpaul@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Violeta Zoila Tapia Córdova",
-      "rut": "20428288-9",
-      "email": "virginiatorres@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Marcela María Morales Pizarro",
-      "rut": "22318908-3",
-      "email": "upena@example.net",
-      "rol": "Administrador",
       "activo": false
     },
     {
-      "nombre": "Pablo Martínez",
-      "rut": "19041813-8",
-      "email": "zperez@example.org",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Paul Benjamín Urrutia Neira",
-      "rut": "17171568-7",
-      "email": "jaraya@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Lina Miranda Vargas",
-      "rut": "19607541-0",
-      "email": "carlos49@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Teresa María González Gallardo",
-      "rut": "17169339-K",
-      "email": "jsilva@example.net",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Emilia Evelyn Villarroel Muñoz",
-      "rut": "6617793-9",
-      "email": "cristian16@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Karen Josefa Rodríguez Fuentes",
-      "rut": "6192877-4",
-      "email": "luis11@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Eladio Rojas Chávez",
-      "rut": "5802603-4",
-      "email": "duranfelipe@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Daniel Méndez Duarte",
-      "rut": "21008827-K",
-      "email": "saraquinteros@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Loreto Daniela Valencia Valencia",
-      "rut": "16049386-0",
-      "email": "kmartinez@example.net",
+      "nombre": "Juan Orellana",
+      "rut": "17247944-8",
+      "email": "xvaras@example.org",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Verónica Díaz",
-      "rut": "18588733-2",
-      "email": "jesuscalderon@example.com",
+      "nombre": "Hilda Cristina Retamales Peña",
+      "rut": "20206771-9",
+      "email": "justinloyola@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Mary María Figueroa Salazar",
-      "rut": "25247420-K",
-      "email": "gonzaleznelson@example.com",
+      "nombre": "Cecilia Catalina Vásquez Godoy",
+      "rut": "16982333-2",
+      "email": "sandramunoz@example.com",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Alexis Bryan Yáñez Molina",
-      "rut": "15549238-4",
-      "email": "rodriguezjulieta@example.com",
+      "nombre": "Dolores Ojeda Prado",
+      "rut": "14542989-7",
+      "email": "zvalenzuela@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Ana María Moreno Godoy",
+      "rut": "17268610-9",
+      "email": "olara@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Magdalena Patricia Rojas Tapia",
+      "rut": "8155911-2",
+      "email": "mirandacarlos@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Luisa Rodríguez",
+      "rut": "7501507-0",
+      "email": "pedroorellana@example.org",
       "rol": "Consultor",
       "activo": true
     },
     {
-      "nombre": "Bernardo Inostroza Torres",
-      "rut": "18561923-0",
-      "email": "rociocaceres@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Iris Martha Rubio Badilla",
-      "rut": "18328942-K",
-      "email": "sanchezarturo@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Edita Vergara Aguilar",
-      "rut": "20331087-0",
-      "email": "andyzuniga@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Matilda Josefa Lagos Bastías",
-      "rut": "15232696-3",
-      "email": "qgamboa@example.com",
-      "rol": "Consultor",
-      "activo": true
-    },
-    {
-      "nombre": "Sergio Quiroga Cifuentes",
-      "rut": "21220195-2",
-      "email": "vsanchez@example.net",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Carolina Milagros Valdebenito Araneda",
-      "rut": "24361793-6",
-      "email": "celso21@example.com",
-      "rol": "Cliente",
-      "activo": true
-    },
-    {
-      "nombre": "Antonella Carrasco Cares",
-      "rut": "24350334-5",
-      "email": "amunoz@example.com",
+      "nombre": "María Alison Ramírez Soto",
+      "rut": "16684245-K",
+      "email": "luis83@example.net",
       "rol": "Administrador",
       "activo": true
     },
     {
-      "nombre": "Raquel Marcelina Morales Cárdenas",
-      "rut": "25612784-9",
-      "email": "diazrosa@example.com",
+      "nombre": "María Ruth Venegas Durán",
+      "rut": "13498847-9",
+      "email": "jorge09@example.org",
       "rol": "Cliente",
       "activo": false
     },
     {
-      "nombre": "José Valenzuela Faúndez",
-      "rut": "12461448-1",
-      "email": "miguel41@example.com",
+      "nombre": "Elizabeth Vallejos-Hormazábal",
+      "rut": "14475004-7",
+      "email": "oscar15@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Andrea Francisca Astudillo Díaz",
+      "rut": "9708759-8",
+      "email": "pablofaundez@example.net",
       "rol": "Cliente",
       "activo": true
     },
     {
-      "nombre": "Lidia Gutiérrez",
-      "rut": "7075739-7",
-      "email": "javiera41@example.org",
+      "nombre": "Almendra Iris San Martín Sepúlveda",
+      "rut": "23302061-3",
+      "email": "alejandropardo@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Julio Bastián Hernández Hernández",
+      "rut": "17772685-0",
+      "email": "carolina99@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Antonella Mia Henríquez Barrientos",
+      "rut": "21900239-4",
+      "email": "hgonzalez@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Damián Sergio Muñoz Miranda",
+      "rut": "7810816-9",
+      "email": "moralesmaria@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Ivonne Margot Guerra Molina",
+      "rut": "9108754-5",
+      "email": "consuelo67@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Cristina María Flores Sánchez",
+      "rut": "9151909-7",
+      "email": "cescobar@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Maximiliano Gerardo Vargas San Martín",
+      "rut": "21857820-9",
+      "email": "cesar44@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Yanira Anahí Díaz Flores",
+      "rut": "23901189-6",
+      "email": "cpalma@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Pablo Gallegos Jiménez",
+      "rut": "19428595-7",
+      "email": "emaadasme@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Valeska Riquelme-Méndez",
+      "rut": "22583480-6",
+      "email": "ingrid02@example.com",
+      "rol": "Consultor",
+      "activo": false
+    },
+    {
+      "nombre": "José Daniel Sandoval Vásquez",
+      "rut": "24684675-8",
+      "email": "sepulvedamaria@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Gladys María Valencia Cortés",
+      "rut": "18782455-9",
+      "email": "corderopablo@example.org",
+      "rol": "Consultor",
+      "activo": false
+    },
+    {
+      "nombre": "Omar Sierra Osorio",
+      "rut": "22057037-1",
+      "email": "munozherminia@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Víctor Cabrera",
+      "rut": "21109310-2",
+      "email": "mariapadilla@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Eduardo Acuña",
+      "rut": "16132193-1",
+      "email": "manuelsoto@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Violeta Isabel Orellana Pavez",
+      "rut": "11268838-2",
+      "email": "manuelpena@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Emma Antonia Ávila Contreras",
+      "rut": "5668807-2",
+      "email": "castillomaria@example.org",
+      "rol": "Administrador",
+      "activo": true
+    },
+    {
+      "nombre": "Bárbara Laura Ulloa Ortega",
+      "rut": "15592494-2",
+      "email": "gonzalezmuriel@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "José Benjamín Pino Pinto",
+      "rut": "21262914-6",
+      "email": "hlizama@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Enrique Caro",
+      "rut": "22023464-9",
+      "email": "ycisternas@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Henry Pedro Olivares Fuenzalida",
+      "rut": "14600296-K",
+      "email": "qjaque@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Alexandra Muñoz Castillo",
+      "rut": "16611306-7",
+      "email": "claudiaescobar@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Javiera Riffo",
+      "rut": "17501034-3",
+      "email": "isabella93@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Bárbara Castro Silva",
+      "rut": "22456634-4",
+      "email": "lcelis@example.com",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Diego Juan Pérez Rodríguez",
+      "rut": "6198497-6",
+      "email": "sandra49@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Verónica Elizabeth Quintana Torres",
+      "rut": "20727040-7",
+      "email": "mario59@example.com",
+      "rol": "Administrador",
+      "activo": true
+    },
+    {
+      "nombre": "Regina Reyes",
+      "rut": "25498989-4",
+      "email": "mleiva@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Sergio Briones Herrera",
+      "rut": "5142166-3",
+      "email": "alexisgallardo@example.net",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Estela Pizarro Lara",
+      "rut": "15568246-9",
+      "email": "rsanhueza@example.org",
+      "rol": "Administrador",
+      "activo": true
+    },
+    {
+      "nombre": "Miguel José Troncoso Toledo",
+      "rut": "25616440-K",
+      "email": "gdonoso@example.com",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "María Pamela Escobar Mardones",
+      "rut": "6724381-1",
+      "email": "albertomunoz@example.com",
+      "rol": "Cliente",
+      "activo": false
+    },
+    {
+      "nombre": "María Lucía Peralta Castillo",
+      "rut": "18789570-7",
+      "email": "rrosas@example.net",
+      "rol": "Administrador",
+      "activo": true
+    },
+    {
+      "nombre": "Benjamín Vidal Ponce",
+      "rut": "12522948-4",
+      "email": "ealarcon@example.net",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Manuel Tomás Andrade González",
+      "rut": "10307476-2",
+      "email": "camilamoya@example.org",
+      "rol": "Consultor",
+      "activo": true
+    },
+    {
+      "nombre": "Edith Salas Pérez",
+      "rut": "20103054-4",
+      "email": "msoto@example.org",
+      "rol": "Administrador",
+      "activo": true
+    },
+    {
+      "nombre": "Julio Cristofer Jara-Muñoz Fuentealba",
+      "rut": "20265497-5",
+      "email": "vmartinez@example.org",
+      "rol": "Cliente",
+      "activo": true
+    },
+    {
+      "nombre": "Adriana Gallardo Gatica",
+      "rut": "12202558-6",
+      "email": "villalobossylvia@example.org",
+      "rol": "Consultor",
+      "activo": false
+    },
+    {
+      "nombre": "Bianca Paola Morales Correa",
+      "rut": "24454381-2",
+      "email": "isabellacornejo@example.com",
       "rol": "Cliente",
       "activo": true
     }
   ],
   "empresas": [
     {
-      "razon_social": "Despacho González y Asociados S.p.A.",
-      "rut": "23037535-6",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Despacho Silva y González S.p.A.",
-      "rut": "17567465-9",
+      "razon_social": "Industrias Zúñiga y Castañeda SPA",
+      "rut": "15921884-8",
       "plan": "GO"
     },
     {
-      "razon_social": "Ríos y Rojas Sociedad Anónima",
-      "rut": "13977939-8",
+      "razon_social": "María Hernández Arriagada EIRL",
+      "rut": "14797651-8",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Comercial Medina y Coronado SPA",
+      "rut": "19306241-5",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Holding Campos y Carrasco S.A.",
+      "rut": "23526951-1",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Holding Cifuentes, Pizarro y Pulgar S.p.A.",
+      "rut": "11238607-6",
       "plan": "FREE"
     },
     {
-      "razon_social": "Chávez S.A.",
-      "rut": "7654993-1",
-      "plan": "EXECUTIVE"
+      "razon_social": "Jerson José Muñoz Rodríguez EIRL",
+      "rut": "15238718-0",
+      "plan": "GO"
     },
     {
-      "razon_social": "Proyectos Bello, Varas y Meza SPA",
-      "rut": "10108242-3",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Holding Peña y Asociados Ltda.",
-      "rut": "5125510-0",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "López, Lagos y León S.p.A.",
-      "rut": "17365253-4",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Paredes y Flores S.A.",
-      "rut": "25854321-1",
-      "plan": "ADVANCE"
-    },
-    {
-      "razon_social": "Soto S.p.A.",
-      "rut": "11243349-K",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Susan Miriam Allendes Venegas E.I.R.L.",
-      "rut": "14131739-3",
-      "plan": "ADVANCE"
-    },
-    {
-      "razon_social": "Gutiérrez y Guzmán Sociedad Anónima",
-      "rut": "14480471-6",
+      "razon_social": "Venegas Sociedad Anónima",
+      "rut": "7298425-0",
       "plan": "FREE"
     },
     {
-      "razon_social": "María Daniela Jara Prieto EIRL",
-      "rut": "7577038-3",
-      "plan": "EXECUTIVE"
+      "razon_social": "Laboratorio Torres y Asociados S.p.A.",
+      "rut": "22449601-K",
+      "plan": "FULL EMPRENDEDOR"
     },
     {
-      "razon_social": "María Beltrán EIRL",
-      "rut": "5886001-8",
+      "razon_social": "Olguín y Agurto SPA",
+      "rut": "9389440-5",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Becerra Ltda.",
-      "rut": "17383003-3",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Comercial Cifuentes, Vega y Santana S.A.",
-      "rut": "15632562-7",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Compañía Herrera y Asociados Ltda.",
-      "rut": "19439989-8",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Grupo González y Oñate Ltda.",
-      "rut": "13260534-3",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Club Espinoza y Asociados S.p.A.",
-      "rut": "5891528-9",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Comercial Marín y Asociados SPA",
-      "rut": "18082769-2",
+      "razon_social": "Ramírez Sociedad Anónima",
+      "rut": "9025762-5",
       "plan": "GO"
     },
     {
-      "razon_social": "Industrias Urra y Asociados Sociedad Anónima",
-      "rut": "13647026-4",
-      "plan": "FULL EMPRENDEDOR"
+      "razon_social": "Grupo Rojas, Rebolledo y San Martín Limitada",
+      "rut": "12048527-K",
+      "plan": "GO"
     },
     {
-      "razon_social": "Gutiérrez S.p.A.",
-      "rut": "6718384-3",
+      "razon_social": "Mario Acevedo EIRL",
+      "rut": "5773948-7",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Grupo Sepúlveda, Quezada y Verdugo S.p.A.",
+      "rut": "9133858-0",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Laboratorio Echeverría y Varela Limitada",
+      "rut": "7584472-7",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Club Velásquez y Morales Sociedad Anónima",
+      "rut": "18691517-8",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Proyectos Aguirre y Asociados S.A.",
+      "rut": "21065937-4",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Jorge Aguilera E.I.R.L.",
+      "rut": "6041065-8",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Grupo Pérez, Santander y Merino Ltda.",
+      "rut": "17989733-4",
       "plan": "EXECUTIVE"
     },
     {
-      "razon_social": "Medina y Donoso SPA",
-      "rut": "23346629-8",
+      "razon_social": "Club Pino, Araya y Soto SPA",
+      "rut": "14317328-3",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Saavedra y Donoso Sociedad Anónima",
+      "rut": "9505193-6",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Holding Pinto y Farías S.p.A.",
+      "rut": "12599870-4",
+      "plan": "FULL EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Club Salgado y Castro SPA",
+      "rut": "18039167-3",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Corporación Ramírez, Rivera y Rojas SPA",
+      "rut": "20070548-3",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "López, Torres y Roa S.p.A.",
+      "rut": "10831119-3",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Daniel José Almonacid Pérez EIRL",
+      "rut": "25086171-0",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Proyectos Sepúlveda, Andrade y Vera S.p.A.",
+      "rut": "6505538-4",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Corporación Torres, González y López S.p.A.",
+      "rut": "24789281-8",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Karen Pizarro Meza E.I.R.L.",
-      "rut": "13577631-9",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Urra y Castillo SPA",
-      "rut": "24078094-1",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Salazar Sociedad Anónima",
-      "rut": "25752536-8",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Mena y Yáñez Sociedad Anónima",
-      "rut": "21878137-3",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Club González y Asociados Ltda.",
-      "rut": "17294935-5",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Laboratorio Uribe, Espinosa y Soto Ltda.",
-      "rut": "22291959-2",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Corporación Morales, Díaz y Bahamondes Limitada",
-      "rut": "5887912-6",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Blanca Leonor Castillo Reyes E.I.R.L.",
-      "rut": "23159841-3",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Pérez y Núñez SPA",
-      "rut": "14214669-K",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Ponce SPA",
-      "rut": "17308988-0",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Ricardo Flores-Troncoso Araya EIRL",
-      "rut": "25206519-9",
+      "razon_social": "Rubén Emiliano Quispe Pino E.I.R.L.",
+      "rut": "8227178-3",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Muñoz, Molina y Rubio Limitada",
-      "rut": "20413140-6",
+      "razon_social": "Grupo Farías y Asociados Limitada",
+      "rut": "13510945-2",
       "plan": "GO"
     },
     {
-      "razon_social": "Alvarado, Araya y Orellana SPA",
-      "rut": "13383591-1",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Esteban Jorge Concha Olea E.I.R.L.",
-      "rut": "15066914-6",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Maricela Leslie Roa Álvarez E.I.R.L.",
-      "rut": "6885530-6",
+      "razon_social": "Laura Rocío Albornoz Venegas EIRL",
+      "rut": "10697474-8",
       "plan": "GO"
     },
     {
-      "razon_social": "Holding Farías, Martínez y Ortega Sociedad Anónima",
-      "rut": "9847171-5",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Club Ruiz y Asociados Limitada",
-      "rut": "15582873-0",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Reyes y Gómez Ltda.",
-      "rut": "20085128-5",
+      "razon_social": "Aros y Díaz Limitada",
+      "rut": "8602280-K",
       "plan": "FULL EMPRENDEDOR"
     },
     {
-      "razon_social": "Sánchez, Navarro y Torres Sociedad Anónima",
-      "rut": "8252721-4",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Francisca Leonor Aránguiz Vivanco EIRL",
-      "rut": "7383877-0",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Carla Cárdenas Rodríguez E.I.R.L.",
-      "rut": "14737789-4",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Jacqueline Guzmán Quiroga E.I.R.L.",
-      "rut": "8353279-3",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Garrido, Álvarez y Reyes Sociedad Anónima",
-      "rut": "13591289-1",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Holding Cortés y Asociados SPA",
-      "rut": "17463045-3",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Olivares y Garcés S.p.A.",
-      "rut": "11849785-6",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Industrias Herrera y Rebolledo S.p.A.",
-      "rut": "7105699-6",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Soto, Bastías y Cid Ltda.",
-      "rut": "6640738-1",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Luis Cristian Márquez González EIRL",
-      "rut": "22207749-4",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Holding Vega y Jiménez Limitada",
-      "rut": "11803384-1",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Delgado S.A.",
-      "rut": "18601283-6",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Club González y Asociados SPA",
-      "rut": "24411973-5",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Escobar SPA",
-      "rut": "18759387-5",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Margarita Teresa Gutiérrez Aravena EIRL",
-      "rut": "14081705-8",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "González y Brito Ltda.",
-      "rut": "5675899-2",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Compañía Pino y Asociados Limitada",
-      "rut": "17799984-9",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Corporación Zapata y Alvarado Sociedad Anónima",
-      "rut": "7358776-K",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Pérez Sociedad Anónima",
-      "rut": "6014930-5",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Francisca Danae Vergara Uribe E.I.R.L.",
-      "rut": "12850466-4",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Belén Emily Gallardo Araya EIRL",
-      "rut": "23443905-7",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Proyectos Sánchez y Asociados S.A.",
-      "rut": "16881118-7",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Industrias Barros, Rojas y Villarroel Limitada",
-      "rut": "14922133-6",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Carolina Saavedra Mellado E.I.R.L.",
-      "rut": "8887904-K",
-      "plan": "FULL EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Martínez y Rosales Limitada",
-      "rut": "23656867-9",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Gabriela Carla Toledo Cabrera E.I.R.L.",
-      "rut": "20506458-3",
-      "plan": "EMPRENDEDOR"
-    },
-    {
-      "razon_social": "Compañía Hidalgo, Fuentes y González Sociedad Anónima",
-      "rut": "12155692-8",
-      "plan": "EXECUTIVE"
-    },
-    {
-      "razon_social": "Troncoso, Hormazábal y Lara Limitada",
-      "rut": "25332798-7",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Federico Pizarro Solís E.I.R.L.",
-      "rut": "7295998-1",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Paulina Bernarda Ruz Morales EIRL",
-      "rut": "5781214-1",
+      "razon_social": "Ulloa S.A.",
+      "rut": "20510692-8",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Pablo Uribe González EIRL",
-      "rut": "22162147-6",
+      "razon_social": "Cofré S.A.",
+      "rut": "24455120-3",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Luis Parra Gutiérrez EIRL",
-      "rut": "22114253-5",
-      "plan": "EXECUTIVE"
+      "razon_social": "Despacho Fonseca, Salgado y Aguirre Limitada",
+      "rut": "20930841-K",
+      "plan": "EMPRENDEDOR"
     },
     {
-      "razon_social": "Mario Yáñez Henríquez E.I.R.L.",
-      "rut": "23488268-6",
-      "plan": "GO"
+      "razon_social": "Fernández y Cortés Limitada",
+      "rut": "9361148-9",
+      "plan": "ADVANCE"
     },
     {
-      "razon_social": "Despacho Cortés, Rivera y Sánchez Ltda.",
-      "rut": "23071927-6",
-      "plan": "FREE"
-    },
-    {
-      "razon_social": "Ángela Allende Aguilar EIRL",
-      "rut": "12173073-1",
-      "plan": "GO"
-    },
-    {
-      "razon_social": "Industrias Montecinos y Becerra Ltda.",
-      "rut": "17606884-1",
+      "razon_social": "Barra y Dinamarca SPA",
+      "rut": "13339677-2",
       "plan": "FULL EMPRENDEDOR"
     },
     {
-      "razon_social": "Zapata S.A.",
-      "rut": "19591896-1",
+      "razon_social": "Cortés, González y Chávez SPA",
+      "rut": "8085035-2",
+      "plan": "FULL EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Proyectos Figueroa, Araya y Gómez S.A.",
+      "rut": "7642944-8",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Corporación Gómez, Valdivia y Arancibia S.p.A.",
-      "rut": "18360707-3",
-      "plan": "GO"
+      "razon_social": "Allendes Limitada",
+      "rut": "10699035-2",
+      "plan": "EXECUTIVE"
     },
     {
-      "razon_social": "Rojas y Flores Sociedad Anónima",
-      "rut": "8891719-7",
+      "razon_social": "Pacheco S.A.",
+      "rut": "15243121-K",
       "plan": "ADVANCE"
     },
     {
-      "razon_social": "Laboratorio Durán, Soto y López Ltda.",
-      "rut": "5472157-9",
+      "razon_social": "Cuevas y Álvarez S.p.A.",
+      "rut": "21569445-3",
+      "plan": "FULL EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Club Gutiérrez y Herrera Ltda.",
+      "rut": "14393199-4",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Ortega Limitada",
+      "rut": "13493904-4",
       "plan": "GO"
+    },
+    {
+      "razon_social": "Laboratorio Guerrero y Rojas SPA",
+      "rut": "9288503-8",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Compañía Arancibia, Cifuentes y Moreno S.A.",
+      "rut": "11513035-8",
+      "plan": "ADVANCE"
+    },
+    {
+      "razon_social": "Grupo Soto, Silva y Páez S.p.A.",
+      "rut": "20388617-9",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Astudillo S.A.",
+      "rut": "16371679-8",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Compañía Núñez y Urrutia Limitada",
+      "rut": "6517907-5",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Baltazar Luis Abarca Muñoz E.I.R.L.",
+      "rut": "15436764-0",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Rafael Jonathan Molina González E.I.R.L.",
+      "rut": "21587746-9",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Camila Andrea Cabello Gómez E.I.R.L.",
+      "rut": "17436851-1",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Álvaro Juan Núñez Rojas EIRL",
+      "rut": "17124084-0",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Emiliano Luis Pacheco Rojas E.I.R.L.",
+      "rut": "17222956-5",
+      "plan": "ADVANCE"
+    },
+    {
+      "razon_social": "Industrias Domínguez y Asociados S.p.A.",
+      "rut": "17572659-4",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Holding Madrid y Asociados Limitada",
+      "rut": "6924771-7",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Holding Morales, Salgado y Villarroel S.A.",
+      "rut": "16195692-9",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Castro, González y Sandoval Limitada",
+      "rut": "24966555-K",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Garrido y Silva Ltda.",
+      "rut": "18386298-7",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Ximena Delfina Vergara Salinas EIRL",
+      "rut": "6596556-9",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Industrias Castro y Fuentes S.A.",
+      "rut": "14935573-1",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Andrés Ricardo Moraga Torres E.I.R.L.",
+      "rut": "10105537-K",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Despacho Troncoso y Sepúlveda S.A.",
+      "rut": "12888161-1",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Mora y Pérez Ltda.",
+      "rut": "24218518-8",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Salgado y Zepeda SPA",
+      "rut": "15370346-9",
+      "plan": "FULL EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Palma, Espinoza y Pérez S.A.",
+      "rut": "16910961-3",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Navarro Sociedad Anónima",
+      "rut": "7362606-4",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Club Huerta y Asociados S.A.",
+      "rut": "23672211-2",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Pinto y Acuña Ltda.",
+      "rut": "10364501-8",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Canales y Soto Ltda.",
+      "rut": "21452470-8",
+      "plan": "ADVANCE"
+    },
+    {
+      "razon_social": "Orellana S.A.",
+      "rut": "12953025-1",
+      "plan": "GO"
+    },
+    {
+      "razon_social": "Holding Escobar y Asociados S.A.",
+      "rut": "13474747-1",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Jaque Sociedad Anónima",
+      "rut": "25697435-5",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Proyectos Rodríguez, Saldías y Sobarzo S.p.A.",
+      "rut": "13129671-1",
+      "plan": "FREE"
+    },
+    {
+      "razon_social": "Club Vejar y Asociados S.A.",
+      "rut": "15432550-6",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Club Araneda y Gómez Sociedad Anónima",
+      "rut": "23401260-6",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Corporación Sáez y Asociados S.p.A.",
+      "rut": "5166058-7",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Pérez y Saavedra Ltda.",
+      "rut": "12615789-4",
+      "plan": "EXECUTIVE"
+    },
+    {
+      "razon_social": "Concha S.A.",
+      "rut": "14177521-9",
+      "plan": "EMPRENDEDOR"
+    },
+    {
+      "razon_social": "Araya y Sáez SPA",
+      "rut": "22678012-2",
+      "plan": "ADVANCE"
+    },
+    {
+      "razon_social": "Silva y Hurtado S.A.",
+      "rut": "18593841-7",
+      "plan": "EXECUTIVE"
     }
   ],
   "credenciales": [],
