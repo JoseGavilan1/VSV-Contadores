@@ -33,7 +33,7 @@
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.16",
     "@xmldom/xmldom": "^0.8.11",
-    "axios": "^1.7.2",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
@@ -59,12 +59,13 @@
     "react-helmet": "^6.1.0",
     "react-router-dom": "^6.16.0",
     "recharts": "^2.12.7",
+    "soap": "^1.7.1",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
-    "xml-crypto": "^6.1.2",
     "xml-js": "^1.6.11",
+    "xmldom": "^0.6.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
