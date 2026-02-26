@@ -28,6 +28,33 @@ const MODULE_CONFIG = {
   DOWNLOAD_PATH: path.resolve(process.cwd(), "./tmp"),
 };
 
+const PUPPETEER_SESSION = {
+  browser: null,
+  page: null,
+  initialized: false,
+};
+
+async function getOrCreatePuppeteerSession() {
+  const hasLiveBrowser =
+    PUPPETEER_SESSION.browser &&
+    typeof PUPPETEER_SESSION.browser.isConnected === "function" &&
+    PUPPETEER_SESSION.browser.isConnected();
+
+  if (!hasLiveBrowser || !PUPPETEER_SESSION.page) {
+    const browser = await puppeteer.launch(BROWSER_OPTS);
+    const page = await setupPage(browser);
+
+    PUPPETEER_SESSION.browser = browser;
+    PUPPETEER_SESSION.page = page;
+    PUPPETEER_SESSION.initialized = false;
+  }
+
+  return {
+    browser: PUPPETEER_SESSION.browser,
+    page: PUPPETEER_SESSION.page,
+  };
+}
+
 export async function emitirDteConPuppeteer(dteJson) {
   const tipoDTE = String(dteJson?.TipoDTE);
   const DTE_URL = `https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=${tipoDTE}`;
@@ -40,7 +67,9 @@ export async function emitirDteConPuppeteer(dteJson) {
   const TELEFONO_EMISOR = String(dteJson?.Encabezado?.Emisor?.Telefono || "")
     .replace(/\D/g, "")
     .slice(0, 14);
-  const CONTACTO_RECEPTOR = String(dteJson?.Encabezado?.Receptor?.Contacto || "").trim();
+  const CONTACTO_RECEPTOR = String(dteJson?.Encabezado?.Receptor?.Contacto || "")
+    .trim()
+    .slice(0, 80);
   const rutSolicitaRaw = String(
     dteJson?.Encabezado?.Emisor?.RUTSolicita || dteJson?.Encabezado?.Receptor?.RUTSolicita || ""
   )
@@ -72,8 +101,7 @@ export async function emitirDteConPuppeteer(dteJson) {
 
   const FORMA_PAGO = String(dteJson?.Encabezado?.IdDoc?.FmaPago || "1");
 
-  const browser = await puppeteer.launch(BROWSER_OPTS);
-  const page = await setupPage(browser);
+  const { browser, page } = await getOrCreatePuppeteerSession();
   const siiRuntimeErrors = [];
 
   const onDialog = async (dialog) => {
@@ -87,6 +115,41 @@ export async function emitirDteConPuppeteer(dteJson) {
   page.on("dialog", onDialog);
 
   try {
+    const extractFolioFromText = (text) => {
+      const normalized = String(text || "").replace(/\s+/g, " ").trim();
+      if (!normalized) return "";
+
+      const patterns = [
+        /factura\s+electronica\s*n[°ºo]?\s*([0-9]{1,6})/i,
+        /folio\s*[:#-]?\s*([0-9]{1,6})/i,
+        /n[°ºo]\s*([0-9]{1,6})/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = normalized.match(pattern);
+        if (match?.[1]) return match[1];
+      }
+
+      return "";
+    };
+
+    const extractFolioFromUrl = (url) => {
+      const normalized = String(url || "");
+      const patterns = [
+        /[?&]folio=([0-9]{1,6})/i,
+        /[?&]nro=([0-9]{1,6})/i,
+        /[?&]numero=([0-9]{1,6})/i,
+        /[?&]num=([0-9]{1,6})/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = normalized.match(pattern);
+        if (match?.[1]) return match[1];
+      }
+
+      return "";
+    };
+
     const clearAndType = async (selector, value, options = {}) => {
       if (value === undefined || value === null || String(value).trim() === "") return false;
 
@@ -137,6 +200,23 @@ export async function emitirDteConPuppeteer(dteJson) {
       return false;
     };
 
+    const hasInputValueFirstAvailable = async (selectors, expectedValue) => {
+      for (const selector of selectors) {
+        const found = await page.$(selector);
+        if (!found) continue;
+
+        const ok = await page.evaluate((sel, expected) => {
+          const el = document.querySelector(sel);
+          if (!el) return false;
+          return String(el.value || "").trim() === String(expected || "").trim();
+        }, selector, expectedValue);
+
+        if (ok) return true;
+      }
+
+      return false;
+    };
+
     const throwIfSiiErrors = async () => {
       if (siiRuntimeErrors.length > 0) {
         throw new Error(siiRuntimeErrors[0]);
@@ -180,6 +260,23 @@ export async function emitirDteConPuppeteer(dteJson) {
       }
     };
 
+    const throwIfMaxAuthenticatedSessions = async () => {
+      const maxSessionsDetected = await page.evaluate(() => {
+        const bodyText = String(document.body?.innerText || "").toLowerCase();
+        return (
+          bodyText.includes("maximo de sesiones autenticadas") ||
+          bodyText.includes("máximo de sesiones autenticadas") ||
+          bodyText.includes("01.01.139.500.709.27")
+        );
+      });
+
+      if (maxSessionsDetected) {
+        throw new Error(
+          "SII bloqueó la sesión por máximo de sesiones autenticadas. Cierra sesiones activas en SII y vuelve a intentar."
+        );
+      }
+    };
+
     const ensureCheckedFirstAvailable = async (selectors) => {
       for (const selector of selectors) {
         const found = await page.$(selector);
@@ -215,14 +312,20 @@ export async function emitirDteConPuppeteer(dteJson) {
       return false;
     };
 
-    // 1. Login y Selección de Empresa
-    await loginSii(page, RUT, DV, PASS);
-    await throwIfSiiQueue();
-    await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
-    await throwIfSiiQueue();
+    // 1. Login y Selección de Empresa (solo una vez por sesión)
+    if (!PUPPETEER_SESSION.initialized) {
+      await loginSii(page, RUT, DV, PASS);
+      await throwIfMaxAuthenticatedSessions();
+      await throwIfSiiQueue();
+      await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
+      await throwIfMaxAuthenticatedSessions();
+      await throwIfSiiQueue();
+      PUPPETEER_SESSION.initialized = true;
+    }
     
     // 2. Navegar al Formulario de Emisión
     await page.goto(DTE_URL, { waitUntil: 'networkidle2' });
+    await throwIfMaxAuthenticatedSessions();
     await throwIfSiiQueue();
     await page.waitForSelector('#EFXP_RUT_RECEP', { visible: true });
 
@@ -275,9 +378,20 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     // 3.5 Contacto receptor
     if (CONTACTO_RECEPTOR) {
-      const contactoSelector = 'input[name="EFXP_CONTACTO"]';
+      const contactoSelectors = [
+        'input[name="EFXP_CONTACTO"]',
+        'input[name="EFXP_CONTACTO_RECEP"]',
+        'input[name^="EFXP_CONTACTO"]',
+        'input[id="EFXP_CONTACTO"]',
+        'input[id^="EFXP_CONTACTO"]',
+      ];
       try {
-        await clearAndType(contactoSelector, CONTACTO_RECEPTOR);
+        await clearAndTypeFirstAvailable(contactoSelectors, CONTACTO_RECEPTOR);
+
+        const persistedContacto = await hasInputValueFirstAvailable(contactoSelectors, CONTACTO_RECEPTOR);
+        if (!persistedContacto) {
+          throw new Error("No se pudo persistir el contacto receptor");
+        }
       } catch (contactoErr) {
         console.warn(`⚠️ No se pudo completar contacto receptor: ${contactoErr.message}`);
       }
@@ -408,7 +522,10 @@ export async function emitirDteConPuppeteer(dteJson) {
     //
 
     /*
+  
     await clickByExactText(page, 'Validar y visualizar');
+
+    /*
 
     // 7. Proceso de Firma Electrónica
     await clickByExactText(page, 'Firmar');
@@ -422,6 +539,12 @@ export async function emitirDteConPuppeteer(dteJson) {
     const pdfPagePromise = waitForPdfPage(browser);
     await clickByExactText(page, 'Ver Documento');
     const pdfPage = await pdfPagePromise;
+
+    const folioFromPage = await pdfPage.evaluate(() => {
+      const bodyText = String(document.body?.innerText || "");
+      return bodyText;
+    });
+    const folio = extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
 
     // Extraemos el PDF usando la sesión activa del navegador
     const result = await pdfPage.evaluate(async () => {
@@ -446,19 +569,31 @@ export async function emitirDteConPuppeteer(dteJson) {
       await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
     }
 
-    const fileName = `FACTURA_FOLIO_${Date.now()}.pdf`;
+    const fileName = folio
+      ? `FACTURA_FOLIO_${folio}.pdf`
+      : `FACTURA_FOLIO_${Date.now()}.pdf`;
     const finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
     await fs.promises.writeFile(finalPath, finalBuffer);
     */
-
-    return { ok: true, mensaje: "DTE validado exitosamente."};
+    return {
+      ok: true,
+      // mensaje: "DTE validado exitosamente.",
+      // path: finalPath,
+      // folio: folio || undefined,
+    };
   } catch (err) {
     console.error(`❌ Error en Emisión: ${err.message}`);
+    if (String(err?.message || "").toLowerCase().includes("maximo de sesiones autenticadas") || String(err?.message || "").toLowerCase().includes("máximo de sesiones autenticadas")) {
+      PUPPETEER_SESSION.initialized = false;
+    }
     return { ok: false, error: err.message };
   } finally {
     page.off("dialog", onDialog);
+    try {
+      // await browser.close();
+    } catch (closeError) {
+      console.warn(`⚠️ No se pudo cerrar el navegador de Puppeteer: ${closeError.message}`);
+    }
   }
-
-  // rut, contaco del cliente, nombre del item, precio
 }
 
