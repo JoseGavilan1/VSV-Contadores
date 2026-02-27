@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { emitirDteController } from "../controllers/dte.controllers.js";
+import { cerrarSesionDteController, emitirDteController } from "../controllers/dte.controllers.js";
 import path from 'path';
 import fs from 'fs';
 
 const dteRoutes = Router();
 dteRoutes.post('/emitir-dte', emitirDteController);
+dteRoutes.post('/cerrar-sesion', cerrarSesionDteController);
 
 // Ruta para descargar el PDF generado
 dteRoutes.get('/download/:fileName', (req, res) => {

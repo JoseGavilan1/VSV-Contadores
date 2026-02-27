@@ -356,41 +356,55 @@ export async function emitirDteConPuppeteer(dteJson) {
     const pdfPagePromise = waitForPdfPage(browser);
     await clickByExactText(page, 'Ver Documento');
     const pdfPage = await pdfPagePromise;
+    let finalPath;
+    let folio;
 
-    const folioFromPage = await pdfPage.evaluate(() => {
-      const bodyText = String(document.body?.innerText || "");
-      return bodyText;
-    });
-    const folio = extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
-
-    // Extraemos el PDF usando la sesión activa del navegador
-    const result = await pdfPage.evaluate(async () => {
-      const response = await fetch(window.location.href);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve({ base64: reader.result.split(',')[1], size: blob.size });
-        reader.readAsDataURL(blob);
+    try {
+      const folioFromPage = await pdfPage.evaluate(() => {
+        const bodyText = String(document.body?.innerText || "");
+        return bodyText;
       });
-    });
+      folio = extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
 
-    const finalBuffer = Buffer.from(result.base64, 'base64');
+      // Extraemos el PDF usando la sesión activa del navegador
+      const result = await pdfPage.evaluate(async () => {
+        const response = await fetch(window.location.href);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve({ base64: reader.result.split(',')[1], size: blob.size });
+          reader.readAsDataURL(blob);
+        });
+      });
 
-    // Validación de integridad (Magic Bytes)
-    if (finalBuffer.toString('utf8', 0, 4) !== '%PDF') {
-      throw new Error("El archivo capturado no es un PDF válido.");
+      const finalBuffer = Buffer.from(result.base64, 'base64');
+
+      // Validación de integridad (Magic Bytes)
+      if (finalBuffer.toString('utf8', 0, 4) !== '%PDF') {
+        throw new Error("El archivo capturado no es un PDF válido.");
+      }
+
+      // 9. Guardado Final
+      if (!fs.existsSync(MODULE_CONFIG.DOWNLOAD_PATH)) {
+        await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
+      }
+
+      const fileName = folio
+        ? `FACTURA_FOLIO_${folio}.pdf`
+        : `FACTURA_FOLIO_${Date.now()}.pdf`;
+      finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
+      await fs.promises.writeFile(finalPath, finalBuffer);
+    } finally {
+      try {
+        if (!pdfPage.isClosed()) {
+          await pdfPage.close();
+        }
+      } catch {}
+
+      try {
+        await page.bringToFront();
+      } catch {}
     }
-
-    // 9. Guardado Final
-    if (!fs.existsSync(MODULE_CONFIG.DOWNLOAD_PATH)) {
-      await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
-    }
-
-    const fileName = folio
-      ? `FACTURA_FOLIO_${folio}.pdf`
-      : `FACTURA_FOLIO_${Date.now()}.pdf`;
-    const finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
-    await fs.promises.writeFile(finalPath, finalBuffer);
     */
     return {
       ok: true,

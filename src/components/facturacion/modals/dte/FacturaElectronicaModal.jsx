@@ -27,6 +27,11 @@ const DOC_CONFIG = {
   description: "Completa los datos para emitir una Factura Electrónica (DTE 33).",
 };
 
+const FACTURA_TABS = {
+  UNICA: "unica",
+  MASIVA: "masiva",
+};
+
 // Tomar la fecha local en formato ISO (YYYY-MM-DD) para el campo de fecha de emisión
 const todayLocalISO = () => {
   const d = new Date();
@@ -35,13 +40,55 @@ const todayLocalISO = () => {
   return local.toISOString().slice(0, 10);
 };
 
-// Inicializar el estado del formulario con valores por defecto
+const BULK_BACKEND_DEFAULTS = {
+  cantidad: "1",
+  ciudadReceptor: "Santiago",
+  fecha: todayLocalISO(),
+  metodo: "1",
+  ciudadEmisor: "Santiago",
+};
+
+const BULK_REQUEST_DELAY_MS = 1000;
+
+const extractInvoiceNumber = (responseData = {}) => {
+  const direct =
+    responseData?.numeroDocumento ??
+    responseData?.numero_documento ??
+    responseData?.nroDocumento ??
+    responseData?.folio ??
+    responseData?.numeroFactura ??
+    responseData?.numero_folio ??
+    responseData?.siiFolio ??
+    responseData?.NroFolio;
+
+  if (direct !== undefined && direct !== null && String(direct).trim() !== "") {
+    return String(direct);
+  }
+
+  const fileName = String(responseData?.fileName || "");
+  const match = fileName.match(/FOLIO[_-]?(\d+)/i);
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  return "-";
+};
+
+const isMaxSiiSessionError = (message = "") => {
+  const text = String(message || "").toLowerCase();
+  return (
+    text.includes("maximo de sesiones autenticadas") ||
+    text.includes("máximo de sesiones autenticadas") ||
+    text.includes("01.01.139.500.709.27")
+  );
+};
+
 const createEmptyItem = () => ({
-  rutFacturar: "77493132-5", // Dejar vacio
+  rutFacturar: "", // Dejar vacio
   ciudadReceptor: "Santiago",
   name: "Operación Renta",
   cantidad: "1",
-  precio: "100", // Dejar vacio
+  precio: "", // Dejar vacio
   fecha: todayLocalISO(),
   metodo: "1",
   ciudadEmisor: "Santiago",
@@ -57,10 +104,175 @@ const createEmptyItem = () => ({
   transporteRutChofer: "", // Dejar vacio
 });
 
+const normalizeHeader = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
+const CSV_HEADERS = {
+  rutFacturar: ["rutfacturar", "rut_facturar", "rutreceptor", "rut"],
+  ciudadReceptor: ["ciudadreceptor", "ciudad_receptor"],
+  name: ["name", "item", "nombreitem", "nombre", "nmbitem"],
+  cantidad: ["cantidad", "qtyitem", "qty", "cantidaditem"],
+  precio: ["precio", "prcitem", "valor", "monto", "neto"],
+  fecha: ["fecha", "fchemis", "fechadeemision", "fechaemision"],
+  metodo: ["metodo", "formadepago", "forma_pago"],
+  ciudadEmisor: ["ciudademisor", "ciudad_emisor", "ciudadorigen"],
+  telefonoEmisor: ["telefonoemisor", "telefono_emisor", "telefono"],
+  contactoReceptor: ["contactoreceptor", "contacto_receptor", "contacto", "correo", "email", "e_mail"],
+  rutSolicita: ["rutsolicita", "rut_solicita"],
+  unidadProducto: ["unidadproducto", "unidad_producto", "uniitem"],
+  descuentoPct: ["descuentopct", "descuento_pct"],
+  descripcionProducto: ["descripcionproducto", "descripcion", "descripcion_item"],
+  transportePatente: ["transportepatente", "transporte_patente", "patente"],
+  transporteRut: ["transporterut", "transporte_rut", "ruttransporte"],
+  transporteChofer: ["transportechofer", "transporte_chofer", "chofer"],
+  transporteRutChofer: ["transporterutchofer", "transporte_rut_chofer", "rutchofer"],
+};
+
+const parseCsvLine = (line) => {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+};
+
+const parseCsvText = (content) => {
+  const lines = String(content || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const rawHeaders = parseCsvLine(lines[0]);
+  const normalizedHeaders = rawHeaders.map(normalizeHeader);
+
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    return normalizedHeaders.reduce((acc, key, idx) => {
+      acc[key] = values[idx] ?? "";
+      return acc;
+    }, {});
+  });
+};
+
+const getCsvValue = (row, aliases = []) => {
+  for (const alias of aliases) {
+    const value = row[alias];
+    if (value !== undefined && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return "";
+};
+
+const normalizeMoneyValue = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const digitsOnly = raw.replace(/[^0-9]/g, "");
+  return digitsOnly;
+};
+
+const getBillingMonthLabel = (dateValue) => {
+  const raw = String(dateValue || "").trim();
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T00:00:00`) : new Date();
+
+  const monthLabel = new Intl.DateTimeFormat("es-CL", { month: "long" }).format(parsedDate);
+  return monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+};
+
+const mapCsvRowToItem = (row) => {
+  const base = createEmptyItem();
+
+  Object.entries(CSV_HEADERS).forEach(([key, aliases]) => {
+    const normalizedAliases = aliases.map(normalizeHeader);
+    const value = getCsvValue(row, normalizedAliases);
+    if (value !== "") {
+      base[key] = value;
+    }
+  });
+
+  const rawPlan = getCsvValue(row, ["plancontable", "plan", "tipo_plan"]);
+  const rawNeto = getCsvValue(row, ["neto", "monto", "valor", "precio", "prcitem"]);
+  base.precio = rawNeto !== "" ? normalizeMoneyValue(rawNeto) : "";
+
+  if (!base.fecha) base.fecha = todayLocalISO();
+  if (!["1", "2", "3"].includes(String(base.metodo))) base.metodo = "1";
+
+  base.cantidad = String(base.cantidad || BULK_BACKEND_DEFAULTS.cantidad).trim() || BULK_BACKEND_DEFAULTS.cantidad;
+  base.ciudadReceptor = String(base.ciudadReceptor || BULK_BACKEND_DEFAULTS.ciudadReceptor).trim() || BULK_BACKEND_DEFAULTS.ciudadReceptor;
+  base.fecha = String(base.fecha || BULK_BACKEND_DEFAULTS.fecha).trim() || BULK_BACKEND_DEFAULTS.fecha;
+  base.metodo = ["1", "2", "3"].includes(String(base.metodo)) ? String(base.metodo) : BULK_BACKEND_DEFAULTS.metodo;
+  base.ciudadEmisor = String(base.ciudadEmisor || BULK_BACKEND_DEFAULTS.ciudadEmisor).trim() || BULK_BACKEND_DEFAULTS.ciudadEmisor;
+
+  const planForItem = rawPlan || "Sin Plan";
+  const billingMonth = getBillingMonthLabel(base.fecha);
+  base.name = `Contabilidad ${planForItem} - ${billingMonth}`;
+
+  return base;
+};
+
+const buildBulkPreviewRow = (row, item) => {
+  const plan = getCsvValue(row, ["plancontable", "plan", "tipo_plan"]);
+  const neto = getCsvValue(row, ["neto", "monto", "valor", "precio", "prcitem"]);
+  const rut = getCsvValue(row, ["rut", "rutfacturar", "rutreceptor", "rut_facturar"]);
+  const contacto = getCsvValue(row, ["correo", "email", "contacto", "contactoreceptor"]);
+
+  return {
+    plan: plan || item.name || "-",
+    neto: neto || item.precio || "-",
+    rut: rut || item.rutFacturar || "-",
+    contacto: contacto || item.contactoReceptor || "-",
+    numeroFactura: "-",
+    descargaUrl: "",
+    descargaArchivo: "",
+    estado: "pendiente",
+    error: "",
+  };
+};
+
 export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
+  const [activeTab, setActiveTab] = useState(FACTURA_TABS.UNICA);
   const [item, setItem] = useState(createEmptyItem());
   const [showTransporte, setShowTransporte] = useState(false);
   const [showEditarDetalles, setShowEditarDetalles] = useState(false);
+  const [bulkRows, setBulkRows] = useState([]);
+  const [bulkPreviewRows, setBulkPreviewRows] = useState([]);
+  const [bulkFileName, setBulkFileName] = useState("");
+  const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+  const [bulkSummary, setBulkSummary] = useState(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -69,9 +281,15 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
   // Resetear el formulario cada vez que se abra el modal
   useEffect(() => {
     if (isOpen) {
+      setActiveTab(FACTURA_TABS.UNICA);
       setItem(createEmptyItem());
       setShowTransporte(false);
       setShowEditarDetalles(false);
+      setBulkRows([]);
+      setBulkPreviewRows([]);
+      setBulkFileName("");
+      setIsBulkSubmitting(false);
+      setBulkSummary(null);
       setIsFinished(false);
       setDownloadInfo(null);
     }
@@ -92,48 +310,53 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     setItem(createEmptyItem());
     setShowTransporte(false);
     setShowEditarDetalles(false);
+    setBulkRows([]);
+    setBulkPreviewRows([]);
+    setBulkFileName("");
+    setIsBulkSubmitting(false);
+    setBulkSummary(null);
     setIsFinished(false);
     setDownloadInfo(null);
   };
 
   // Función de validación del formulario antes de enviar
-  const validate = () => {
+  const validate = (sourceItem = item, showErrorToast = true) => {
     const errors = [];
-    const cantidadNum = Number(item.cantidad);
-    const precioNum = Number(item.precio);
+    const cantidadNum = Number(sourceItem.cantidad);
+    const precioNum = Number(sourceItem.precio);
 
-    if (!item.rutFacturar.trim() || !cleanRut(item.rutFacturar).includes("-")) errors.push("Rut a facturar");
-    if (!item.ciudadReceptor.trim()) errors.push("Ciudad receptor");
-    if (!item.name.trim()) errors.push("Nombre del ítem");
+    if (!sourceItem.rutFacturar.trim() || !cleanRut(sourceItem.rutFacturar).includes("-")) errors.push("Rut a facturar");
+    if (!sourceItem.ciudadReceptor.trim()) errors.push("Ciudad receptor");
+    if (!sourceItem.name.trim()) errors.push("Nombre del ítem");
     if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) errors.push("Cantidad");
     if (!Number.isFinite(precioNum) || precioNum <= 0) errors.push("Precio");
 
     const hasDetalleExtraData = [
-      item.ciudadEmisor,
-      item.telefonoEmisor,
-      item.contactoReceptor,
-      item.rutSolicita,
-      item.unidadProducto,
-      item.descuentoPct,
-      item.descripcionProducto,
+      sourceItem.ciudadEmisor,
+      sourceItem.telefonoEmisor,
+      sourceItem.contactoReceptor,
+      sourceItem.rutSolicita,
+      sourceItem.unidadProducto,
+      sourceItem.descuentoPct,
+      sourceItem.descripcionProducto,
     ].some((value) => String(value || "").trim() !== "");
 
     if (hasDetalleExtraData) {
-      const descuentoNum = Number(item.descuentoPct || 0);
-      if (!item.ciudadEmisor.trim()) errors.push("Ciudad emisor");
-      if (item.descuentoPct !== "" && (descuentoNum < 0 || descuentoNum > 100)) {
+      const descuentoNum = Number(sourceItem.descuentoPct || 0);
+      if (!sourceItem.ciudadEmisor.trim()) errors.push("Ciudad emisor");
+      if (sourceItem.descuentoPct !== "" && (descuentoNum < 0 || descuentoNum > 100)) {
         errors.push("% Descuento (debe estar entre 0 y 100)");
       }
     }
 
     const metodosValidos = ["1", "2", "3"]; 
-    if (!metodosValidos.includes(String(item.metodo))) {
+    if (!metodosValidos.includes(String(sourceItem.metodo))) {
       errors.push("Forma de pago inválida (1: Contado, 2: Crédito, 3: Sin Costo)");
     }
 
-    if (!item.fecha) errors.push("Fecha de emisión");
+    if (!sourceItem.fecha) errors.push("Fecha de emisión");
 
-    if (errors.length > 0) {
+    if (errors.length > 0 && showErrorToast) {
       toast({
         variant: "destructive",
         title: "Faltan campos",
@@ -144,88 +367,109 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     return true;
   };
 
+  const buildDteFromItem = (sourceItem) => {
+    const rutReceptor = cleanRut(sourceItem.rutFacturar);
+    const rutSolicita = cleanRut(sourceItem.rutSolicita);
+    const descuentoNum = Number(sourceItem.descuentoPct || 0);
+    const hasTransporteData = [
+      sourceItem.transportePatente,
+      sourceItem.transporteRut,
+      sourceItem.transporteChofer,
+      sourceItem.transporteRutChofer,
+    ].some((value) => value?.trim());
+    const hasDetalleExtraData = [
+      sourceItem.ciudadEmisor,
+      sourceItem.telefonoEmisor,
+      sourceItem.contactoReceptor,
+      sourceItem.rutSolicita,
+      sourceItem.unidadProducto,
+      sourceItem.descuentoPct,
+      sourceItem.descripcionProducto,
+    ].some((value) => String(value || "").trim() !== "");
+
+    const dteJson = buildDteJson({
+      TipoDTE: 33,
+      Receptor: {
+        RUTRecep: rutReceptor,
+        CdadRecep: sourceItem.ciudadReceptor.trim(),
+      },
+      Detalle: {
+        NmbItem: sourceItem.name.trim(),
+        QtyItem: Number(sourceItem.cantidad),
+        UniItem: (sourceItem.unidadProducto || "UN").trim(),
+        PrcItem: Number(sourceItem.precio),
+        Metodo: sourceItem.metodo,
+        FchEmis: sourceItem.fecha,
+        ...(descuentoNum > 0 ? { DescuentoPct: descuentoNum } : {}),
+        ...(sourceItem.descripcionProducto.trim()
+          ? { Descripcion: sourceItem.descripcionProducto.trim() }
+          : {}),
+        ...(hasTransporteData
+          ? {
+              Transporte: {
+                Patente: sourceItem.transportePatente,
+                RUTTrans: sourceItem.transporteRut,
+                Chofer: sourceItem.transporteChofer,
+                RUTChofer: sourceItem.transporteRutChofer,
+              },
+            }
+          : {}),
+      },
+    });
+
+    if (hasDetalleExtraData) {
+      dteJson.Encabezado = dteJson.Encabezado || {};
+      dteJson.Encabezado.Receptor = {
+        ...(dteJson.Encabezado.Receptor || {}),
+        ...(sourceItem.contactoReceptor.trim() ? { Contacto: sourceItem.contactoReceptor.trim() } : {}),
+      };
+      dteJson.Encabezado.Emisor = {
+        ...(sourceItem.ciudadEmisor.trim() ? { CiudadOrigen: sourceItem.ciudadEmisor.trim() } : {}),
+        ...(sourceItem.telefonoEmisor.trim() ? { Telefono: sourceItem.telefonoEmisor.trim() } : {}),
+        ...(rutSolicita.includes("-") ? { RUTSolicita: rutSolicita } : {}),
+      };
+    }
+
+    return dteJson;
+  };
+
+  const emitirDte = async (sourceItem) => {
+    const dteJson = buildDteFromItem(sourceItem);
+
+    const res = await fetch(`${API_BASE_URL}/dte/emitir-dte`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dteJson }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.error || "Error al emitir el documento");
+    }
+
+    return data;
+  };
+
+  const cerrarSesionMasiva = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/dte/cerrar-sesion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.warn("No se pudo cerrar la sesión al finalizar emisión masiva:", error?.message || error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate(item, true)) return;
 
     setIsSubmitting(true);
 
     try {
-      const rutReceptor = cleanRut(item.rutFacturar);
-      const rutSolicita = cleanRut(item.rutSolicita);
-      const descuentoNum = Number(item.descuentoPct || 0);
-      const hasTransporteData = [
-        item.transportePatente,
-        item.transporteRut,
-        item.transporteChofer,
-        item.transporteRutChofer,
-      ].some((value) => value?.trim());
-      const hasDetalleExtraData = [
-        item.ciudadEmisor,
-        item.telefonoEmisor,
-        item.contactoReceptor,
-        item.rutSolicita,
-        item.unidadProducto,
-        item.descuentoPct,
-        item.descripcionProducto,
-      ].some((value) => String(value || "").trim() !== "");
-
-      const dteJson = buildDteJson({
-        TipoDTE: 33,
-        Receptor: {
-          RUTRecep: rutReceptor,
-          CdadRecep: item.ciudadReceptor.trim(),
-        },
-        Detalle: {
-          NmbItem: item.name.trim(),
-          QtyItem: Number(item.cantidad),
-          UniItem: (item.unidadProducto || "UN").trim(),
-          PrcItem: Number(item.precio),
-          Metodo: item.metodo,
-          FchEmis: item.fecha,
-          ...(descuentoNum > 0 ? { DescuentoPct: descuentoNum } : {}),
-          ...(item.descripcionProducto.trim()
-            ? { Descripcion: item.descripcionProducto.trim() }
-            : {}),
-          ...(hasTransporteData
-            ? {
-                Transporte: {
-                  Patente: item.transportePatente,
-                  RUTTrans: item.transporteRut,
-                  Chofer: item.transporteChofer,
-                  RUTChofer: item.transporteRutChofer,
-                },
-              }
-            : {}),
-        },
-      });
-
-      if (hasDetalleExtraData) {
-        dteJson.Encabezado = dteJson.Encabezado || {};
-        dteJson.Encabezado.Receptor = {
-          ...(dteJson.Encabezado.Receptor || {}),
-          ...(item.contactoReceptor.trim() ? { Contacto: item.contactoReceptor.trim() } : {}),
-        };
-        dteJson.Encabezado.Emisor = {
-          ...(item.ciudadEmisor.trim() ? { CiudadOrigen: item.ciudadEmisor.trim() } : {}),
-          ...(item.telefonoEmisor.trim() ? { Telefono: item.telefonoEmisor.trim() } : {}),
-          ...(rutSolicita.includes("-") ? { RUTSolicita: rutSolicita } : {}),
-        };
-      }
-
-      console.log("DTE JSON a enviar:", dteJson);
-
-      const res = await fetch(`${API_BASE_URL}/dte/emitir-dte`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dteJson }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data?.ok === false) {
-        throw new Error(data?.error || "Error al emitir el documento");
-      }
+      const data = await emitirDte(item);
 
       setDownloadInfo({
         archivo: data.fileName, 
@@ -245,9 +489,180 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     }
   };
 
+  const handleCsvFileChange = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      setBulkRows([]);
+      setBulkPreviewRows([]);
+      setBulkFileName("");
+      setBulkSummary(null);
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      const parsedRows = parseCsvText(content);
+      const rows = parsedRows.map(mapCsvRowToItem);
+      const previewRows = parsedRows.map((row, index) => buildBulkPreviewRow(row, rows[index]));
+
+      if (rows.length === 0) {
+        throw new Error("El archivo no contiene filas válidas.");
+      }
+
+      setBulkRows(rows);
+      setBulkPreviewRows(previewRows);
+      setBulkFileName(file.name);
+      setBulkSummary(null);
+      toast({ title: "CSV cargado", description: `Se detectaron ${rows.length} filas para procesar.` });
+    } catch (error) {
+      setBulkRows([]);
+      setBulkPreviewRows([]);
+      setBulkFileName("");
+      setBulkSummary(null);
+      toast({
+        variant: "destructive",
+        title: "Error al leer CSV",
+        description: error.message || "No se pudo procesar el archivo.",
+      });
+    }
+  };
+
+  const handleBulkSubmit = async () => {
+    if (bulkRows.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Sin datos",
+        description: "Carga un archivo CSV antes de emitir facturas masivas.",
+      });
+      return;
+    }
+
+    setIsBulkSubmitting(true);
+
+    setBulkPreviewRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        estado: "pendiente",
+        error: "",
+      }))
+    );
+
+    const errors = [];
+    let successCount = 0;
+
+    try {
+      for (let index = 0; index < bulkRows.length; index += 1) {
+        const rowItem = bulkRows[index];
+
+        setBulkPreviewRows((prev) =>
+          prev.map((row, rowIndex) =>
+            rowIndex === index ? { ...row, estado: "procesando", error: "" } : row
+          )
+        );
+
+        if (!validate(rowItem, false)) {
+          errors.push(`Fila ${index + 2}: datos inválidos`);
+          setBulkPreviewRows((prev) =>
+            prev.map((row, rowIndex) =>
+              rowIndex === index
+                ? {
+                    ...row,
+                    estado: "error",
+                    numeroFactura: "-",
+                    descargaUrl: "",
+                    descargaArchivo: "",
+                    error: "Datos inválidos",
+                  }
+                : row
+            )
+          );
+          continue;
+        }
+
+        try {
+          const responseData = await emitirDte(rowItem);
+          const numeroFactura = extractInvoiceNumber(responseData);
+          const descargaUrl = responseData?.downloadUrl
+            ? `${API_BASE_URL}${responseData.downloadUrl}`
+            : "";
+
+          setBulkPreviewRows((prev) =>
+            prev.map((row, rowIndex) =>
+              rowIndex === index
+                ? {
+                    ...row,
+                    estado: "emitida",
+                    numeroFactura,
+                    descargaUrl,
+                    descargaArchivo: responseData?.fileName || "factura.pdf",
+                    error: "",
+                  }
+                : row
+            )
+          );
+
+          if (index < bulkRows.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, BULK_REQUEST_DELAY_MS));
+          }
+
+          successCount += 1;
+        } catch (error) {
+          errors.push(`Fila ${index + 2}: ${error.message}`);
+          setBulkPreviewRows((prev) =>
+            prev.map((row, rowIndex) =>
+              rowIndex === index
+                ? {
+                    ...row,
+                    estado: "error",
+                    numeroFactura: "-",
+                    descargaUrl: "",
+                    descargaArchivo: "",
+                    error: error.message,
+                  }
+                : row
+            )
+          );
+
+          if (isMaxSiiSessionError(error.message)) {
+            errors.push("Proceso detenido: SII bloqueó por máximo de sesiones autenticadas.");
+            break;
+          }
+
+          if (index < bulkRows.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, BULK_REQUEST_DELAY_MS));
+          }
+        }
+      }
+
+      setBulkSummary({
+        total: bulkRows.length,
+        successCount,
+        errorCount: errors.length,
+        errors,
+      });
+
+      if (errors.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Proceso finalizado con observaciones",
+          description: `Emitidas ${successCount} de ${bulkRows.length}.`,
+        });
+      } else {
+        toast({
+          title: "Proceso completado",
+          description: `Se emitieron ${successCount} facturas correctamente.`,
+        });
+      }
+    } finally {
+      await cerrarSesionMasiva();
+      setIsBulkSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(val) => { if(!isSubmitting) setIsOpen(val); }}>
-      <DialogContent className="sm:max-w-[650px] bg-zinc-900 border-white/10 text-white">
+      <DialogContent className="sm:max-w-[980px] bg-zinc-900 border-white/10 text-white">
         {(isSubmitting || isFinished) && (
           <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
             <div className="flex flex-col items-center gap-6 p-10 text-center w-full max-w-sm">
@@ -297,7 +712,27 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
             <DialogDescription>{DOC_CONFIG.description}</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button
+              type="button"
+              variant={activeTab === FACTURA_TABS.UNICA ? "default" : "secondary"}
+              onClick={() => setActiveTab(FACTURA_TABS.UNICA)}
+              className="w-full"
+            >
+              Factura única
+            </Button>
+            <Button
+              type="button"
+              variant={activeTab === FACTURA_TABS.MASIVA ? "default" : "secondary"}
+              onClick={() => setActiveTab(FACTURA_TABS.MASIVA)}
+              className="w-full"
+            >
+              Factura masiva
+            </Button>
+          </div>
+
+          {activeTab === FACTURA_TABS.UNICA && (
+          <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rut_facturar">Rut a facturar</Label>
@@ -504,6 +939,104 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Emitir Factura</Button>
             </DialogFooter>
           </form>
+          )}
+
+          {activeTab === FACTURA_TABS.MASIVA && (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="factura_masiva_csv">Archivo CSV</Label>
+                <Input
+                  id="factura_masiva_csv"
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleCsvFileChange}
+                  disabled={isBulkSubmitting}
+                />
+                <p className="text-xs text-zinc-400">
+                  Usa columnas como: rutFacturar, ciudadReceptor, name, cantidad, precio, fecha, metodo y opcionales de detalle/transporte.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-2">
+                <p className="text-sm"><span className="font-semibold">Archivo:</span> {bulkFileName || "Sin archivo cargado"}</p>
+                <p className="text-sm"><span className="font-semibold">Filas detectadas:</span> {bulkRows.length}</p>
+              </div>
+
+              {bulkPreviewRows.length > 0 && (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+                  <p className="text-sm font-semibold">Personas a facturar</p>
+                  <div className="max-h-56 overflow-auto rounded-md border border-white/10">
+                    <table className="w-full text-xs">
+                      <thead className="bg-white/10">
+                        <tr>
+                          <th className="text-left font-semibold p-2">PLAN</th>
+                          <th className="text-left font-semibold p-2">NETO</th>
+                          <th className="text-left font-semibold p-2">RUT</th>
+                          <th className="text-left font-semibold p-2">CONTACTO</th>
+                          <th className="text-left font-semibold p-2">N° FACTURA</th>
+                          <th className="text-left font-semibold p-2">DESCARGA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkPreviewRows.map((row, index) => (
+                          <tr key={`${row.rut}-${index}`} className="border-t border-white/10">
+                            <td className="p-2">{row.plan}</td>
+                            <td className="p-2">{row.neto}</td>
+                            <td className="p-2">{row.rut}</td>
+                            <td className="p-2">{row.contacto}</td>
+                            <td className="p-2">{row.numeroFactura}</td>
+                            <td className="p-2">
+                              {row.descargaUrl ? (
+                                <a
+                                  href={row.descargaUrl}
+                                  download={row.descargaArchivo || undefined}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide hover:bg-blue-700"
+                                >
+                                  Descargar
+                                </a>
+                              ) : (
+                                <span className="text-zinc-400">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {bulkSummary && (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-2">
+                  <p className="text-sm font-semibold">Resultado de la emisión masiva</p>
+                  <p className="text-sm">Total: {bulkSummary.total}</p>
+                  <p className="text-sm text-green-400">Emitidas: {bulkSummary.successCount}</p>
+                  <p className="text-sm text-red-400">Con error: {bulkSummary.errorCount}</p>
+                  {bulkSummary.errors.length > 0 && (
+                    <div className="max-h-32 overflow-y-auto rounded border border-white/10 p-2 text-xs text-red-300 space-y-1">
+                      {bulkSummary.errors.map((error) => (
+                        <p key={error}>{error}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} disabled={isBulkSubmitting}>Cancelar</Button>
+                <Button
+                  type="button"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isBulkSubmitting || bulkRows.length === 0}
+                  onClick={handleBulkSubmit}
+                >
+                  {isBulkSubmitting ? "Procesando..." : "Emitir facturas masivas"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
