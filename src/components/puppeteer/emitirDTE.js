@@ -33,6 +33,18 @@ const PUPPETEER_SESSION = {
   initialized: false,
 };
 
+async function closePuppeteerSession() {
+  try {
+    const browser = PUPPETEER_SESSION.browser;
+    if (browser && typeof browser.isConnected === "function" && browser.isConnected()) {
+      await browser.close();
+    }
+  } catch {}
+
+  PUPPETEER_SESSION.browser = null;
+  PUPPETEER_SESSION.page = null;
+  PUPPETEER_SESSION.initialized = false;
+}
 async function getOrCreatePuppeteerSession() {
   const hasLiveBrowser =
     PUPPETEER_SESSION.browser &&
@@ -55,6 +67,7 @@ async function getOrCreatePuppeteerSession() {
 }
 
 export async function emitirDteConPuppeteer(dteJson) {
+  const shouldCloseSessionOnAtypicalError = dteJson?.masivo === true ? false : true;
   const tipoDTE = String(dteJson?.TipoDTE);
   const DTE_URL = `https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=${tipoDTE}`;
 
@@ -99,6 +112,17 @@ export async function emitirDteConPuppeteer(dteJson) {
   const FORMA_PAGO = String(dteJson?.Encabezado?.IdDoc?.FmaPago || "1");
 
   const { browser, page } = await getOrCreatePuppeteerSession();
+  const siiRuntimeErrors = [];
+
+  const onDialog = async (dialog) => {
+    const message = String(dialog?.message?.() || "").trim();
+    if (message) siiRuntimeErrors.push(message);
+    try {
+      await dialog.accept();
+    } catch {}
+  };
+
+  page.on("dialog", onDialog);
 
   try {
     // Limpiar actual y dejar nuevo
@@ -111,6 +135,54 @@ export async function emitirDteConPuppeteer(dteJson) {
       await page.keyboard.press('Backspace');
       await page.type(selector, String(value), { delay });
       return true;
+    };
+
+    const hasInputValue = async (selector, expectedValue) => {
+      const found = await page.$(selector);
+      if (!found) return false;
+
+      return await page.evaluate((sel, expected) => {
+        const element = document.querySelector(sel);
+        if (!element) return false;
+        return String(element.value || "").trim() === String(expected || "").trim();
+      }, selector, expectedValue);
+    };
+
+    const ensureChecked = async (selector) => {
+      const found = await page.$(selector);
+      if (!found) return false;
+
+      await page.evaluate((sel) => {
+        const element = document.querySelector(sel);
+        if (!element) return;
+        if (!element.checked) element.click();
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+      }, selector);
+
+      return true;
+    };
+
+    const throwIfSiiErrors = async () => {
+      if (siiRuntimeErrors.length > 0) {
+        throw new Error(siiRuntimeErrors[0]);
+      }
+
+      const inlineErrors = await page.evaluate(() => {
+        const candidates = Array.from(
+          document.querySelectorAll(
+            '.alert-danger, .alert-error, .text-danger, .has-error .help-block, .error, .mensajeError, .msgError, .help-inline'
+          )
+        )
+          .map((element) => (element.textContent || "").trim())
+          .filter(Boolean)
+          .filter((text) => text.length > 3);
+
+        return Array.from(new Set(candidates));
+      });
+
+      if (inlineErrors.length > 0) {
+        throw new Error(inlineErrors[0]);
+      }
     };
 
     // 1. Login y Selección de Empresa (solo una vez por sesión)
@@ -131,7 +203,7 @@ export async function emitirDteConPuppeteer(dteJson) {
     await page.keyboard.type(DV_RECEPTOR, { delay: 20 });
     await page.keyboard.press('Enter');
 
-    await sleep(250);
+    await sleep(200);
 
     // 3.2 Fecha de emisión
     const fechaSelector = 'input[name="EFXP_FCH_EMIS"]';
@@ -324,16 +396,28 @@ export async function emitirDteConPuppeteer(dteJson) {
     };
   } catch (err) {
     console.error(`❌ Error en Emisión: ${err.message}`);
-    if (String(err?.message || "").toLowerCase().includes("maximo de sesiones autenticadas") || String(err?.message || "").toLowerCase().includes("máximo de sesiones autenticadas")) {
+    const errorMessage = String(err?.message || "").toLowerCase();
+    const isMaxAuthenticatedSessions =
+      errorMessage.includes("maximo de sesiones autenticadas") ||
+      errorMessage.includes("máximo de sesiones autenticadas");
+
+    if (isMaxAuthenticatedSessions) {
       PUPPETEER_SESSION.initialized = false;
+      return {
+        ok: false,
+        error: "Sesión bloqueada en SII por máximo de sesiones autenticadas. Cierra sesiones activas y vuelve a intentarlo.",
+      };
     }
-    return { ok: false, error: err.message };
+
+    if (shouldCloseSessionOnAtypicalError) {
+      await closePuppeteerSession();
+    }
+
+    return {
+      ok: false,
+      error: "Ocurrió un problema inesperado al emitir el DTE. Vuelve a intentarlo.",
+    };
   } finally {
     page.off("dialog", onDialog);
-    try {
-      // await browser.close();
-    } catch (closeError) {
-      console.warn(`⚠️ No se pudo cerrar el navegador de Puppeteer: ${closeError.message}`);
-    }
   }
 }
