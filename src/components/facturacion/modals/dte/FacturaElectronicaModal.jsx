@@ -48,7 +48,7 @@ const BULK_BACKEND_DEFAULTS = {
   ciudadEmisor: "Santiago",
 };
 
-const BULK_REQUEST_DELAY_MS = 1000;
+const BULK_REQUEST_DELAY_MS = 2000;
 
 const extractInvoiceNumber = (responseData = {}) => {
   const direct =
@@ -433,8 +433,12 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     return dteJson;
   };
 
-  const emitirDte = async (sourceItem) => {
+  const emitirDte = async (sourceItem, options = {}) => {
+    const { masivo = false } = options;
     const dteJson = buildDteFromItem(sourceItem);
+    if (masivo) {
+      dteJson.masivo = true;
+    }
 
     const res = await fetch(`${API_BASE_URL}/dte/emitir-dte`, {
       method: "POST",
@@ -581,7 +585,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
         }
 
         try {
-          const responseData = await emitirDte(rowItem);
+          const responseData = await emitirDte(rowItem, { masivo: true });
           const numeroFactura = extractInvoiceNumber(responseData);
           const descargaUrl = responseData?.downloadUrl
             ? `${API_BASE_URL}${responseData.downloadUrl}`

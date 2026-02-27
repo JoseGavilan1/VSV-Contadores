@@ -27,11 +27,179 @@ const MODULE_CONFIG = {
   DOWNLOAD_PATH: path.resolve(process.cwd(), "./tmp"),
 };
 
+const DEBUG_BROWSER_LOG = /^(1|true|yes|on|debug)$/i.test(String(process.env.DTE_BROWSER_LOG || ""));
+
 const PUPPETEER_SESSION = {
   browser: null,
   page: null,
   initialized: false,
 };
+
+const SII_LOGOUT_URL = "https://zeusr.sii.cl/cgi_AUT2000/autTermino.cgi";
+const SII_BASE_ORIGIN = "https://zeusr.sii.cl";
+
+function createBrowserDebugLogger(page, options = {}) {
+  const { enabled = false } = options;
+  if (!enabled || !page) {
+    return () => {};
+  }
+
+  const safeString = (value, max = 220) => {
+    const text = String(value ?? "").replace(/\s+/g, " ").trim();
+    if (!text) return "";
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  };
+
+  const log = (event, message) => {
+    const ts = new Date().toISOString();
+    console.log(`[BrowserLog][${ts}][${event}] ${message}`);
+  };
+
+  const onRequest = (request) => {
+    const url = request.url();
+    const method = request.method();
+    const resourceType = request.resourceType?.() || "other";
+    const redirectChain = request.redirectChain?.() || [];
+
+    if (redirectChain.length > 0) {
+      const chain = redirectChain.map((item) => safeString(item.url())).join(" -> ");
+      log("request", `${method} ${safeString(url)} (type=${resourceType}, redirects=${redirectChain.length}, chain=${chain})`);
+      return;
+    }
+
+    log("request", `${method} ${safeString(url)} (type=${resourceType})`);
+  };
+
+  const onResponse = (response) => {
+    const request = response.request();
+    const status = response.status();
+    const url = response.url();
+    const method = request?.method?.() || "GET";
+    const redirectHeader = response.headers?.().location;
+
+    if (redirectHeader || status >= 300 && status < 400) {
+      log("response", `${status} ${method} ${safeString(url)}${redirectHeader ? ` -> ${safeString(redirectHeader)}` : ""}`);
+      return;
+    }
+
+    log("response", `${status} ${method} ${safeString(url)}`);
+  };
+
+  const onRequestFailed = (request) => {
+    const failure = request.failure?.();
+    const reason = safeString(failure?.errorText || "unknown");
+    log("requestfailed", `${request.method()} ${safeString(request.url())} (reason=${reason})`);
+  };
+
+  const onFrameNavigated = (frame) => {
+    if (frame !== page.mainFrame()) return;
+    log("navigation", safeString(frame.url()));
+  };
+
+  const onConsole = (msg) => {
+    const txt = safeString(msg.text(), 300);
+    if (!txt) return;
+    log(`console:${msg.type()}`, txt);
+  };
+
+  const onPageError = (error) => {
+    log("pageerror", safeString(error?.message || error, 300));
+  };
+
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfailed", onRequestFailed);
+  page.on("framenavigated", onFrameNavigated);
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
+
+  log("status", `Browser logging enabled for page ${safeString(page.url()) || "about:blank"}`);
+
+  return () => {
+    page.off("request", onRequest);
+    page.off("response", onResponse);
+    page.off("requestfailed", onRequestFailed);
+    page.off("framenavigated", onFrameNavigated);
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    log("status", "Browser logging disabled");
+  };
+}
+
+function extractFolioFromText(text) {
+  const source = String(text || "");
+  if (!source) return null;
+
+  const patterns = [
+    /folio\s*[:#-]?\s*(\d{1,12})/i,
+    /n[°º]\s*[:#-]?\s*(\d{1,12})/i,
+    /documento\s*[:#-]?\s*(\d{1,12})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+}
+
+function extractFolioFromUrl(url) {
+  const source = String(url || "");
+  if (!source) return null;
+
+  try {
+    const parsed = new URL(source);
+    const queryCandidates = ["FOLIO", "folio", "NRODOC", "nrodoc", "DOC", "doc"];
+    for (const key of queryCandidates) {
+      const value = parsed.searchParams.get(key);
+      if (value && /^\d{1,12}$/.test(value)) return value;
+    }
+  } catch {}
+
+  const pathMatch = source.match(/(?:folio|doc|nrodoc)[=:/-](\d{1,12})/i);
+  if (pathMatch?.[1]) return pathMatch[1];
+
+  return null;
+}
+
+async function extractFolioFromCurrentPage(page) {
+  try {
+    const candidates = await page.evaluate(() => {
+      const selectors = [
+        "#folio",
+        "[id*='folio' i]",
+        "[name*='folio' i]",
+        ".folio",
+        "td",
+        "th",
+        "span",
+        "div",
+      ];
+
+      const values = [];
+      for (const selector of selectors) {
+        const nodes = document.querySelectorAll(selector);
+        nodes.forEach((node) => {
+          const text = String(node?.textContent || "").trim();
+          if (text) values.push(text);
+        });
+      }
+
+      const bodyText = String(document.body?.innerText || "").trim();
+      if (bodyText) values.push(bodyText);
+
+      return values;
+    });
+
+    for (const candidate of candidates) {
+      const folio = extractFolioFromText(candidate);
+      if (folio) return folio;
+    }
+  } catch {}
+
+  return null;
+}
 
 async function closePuppeteerSession() {
   try {
@@ -46,12 +214,85 @@ async function closePuppeteerSession() {
   PUPPETEER_SESSION.initialized = false;
 }
 
+async function cerrarSesionSiiDesdePagina(page) {
+  if (!page || page.isClosed?.()) return;
+
+  try {
+    const clickedLogout = await page.evaluate(() => {
+      const anchors = Array.from(document.querySelectorAll("a"));
+      const byText = anchors.find((anchor) =>
+        /cerrar\s*sesi[oó]n/i.test(String(anchor.textContent || "").trim())
+      );
+
+      if (byText) {
+        byText.click();
+        return true;
+      }
+
+      const byHref = anchors.find((anchor) => /autTermino\.cgi/i.test(String(anchor.href || "")));
+      if (byHref) {
+        byHref.click();
+        return true;
+      }
+
+      return false;
+    });
+
+    if (clickedLogout) {
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 12000 }).catch(() => {});
+      return;
+    }
+
+    await page.goto(SII_LOGOUT_URL, { waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+  } catch {
+    await page.goto(SII_LOGOUT_URL, { waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+  }
+}
+
+async function limpiarEstadoNavegadorSii(browser, page) {
+  if (!browser || !page || page.isClosed?.()) return;
+
+  try {
+    const pages = await browser.pages();
+    for (const browserPage of pages) {
+      if (browserPage !== page) {
+        try {
+          await browserPage.close();
+        } catch {}
+      }
+    }
+  } catch {}
+
+  try {
+    const client = await page.target().createCDPSession();
+    await client.send("Network.clearBrowserCookies");
+    await client.send("Network.clearBrowserCache");
+    await client.detach();
+  } catch {}
+
+  try {
+    await page.goto(SII_BASE_ORIGIN, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {});
+    await page.evaluate(async () => {
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      try {
+        if (window.caches && typeof window.caches.keys === "function") {
+          const cacheKeys = await window.caches.keys();
+          await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
+        }
+      } catch {}
+    });
+  } catch {}
+}
+
 export async function cerrarSesionDtePuppeteer() {
   await closePuppeteerSession();
   return { ok: true, message: "Sesión de Puppeteer cerrada correctamente." };
 }
 
-async function getOrCreatePuppeteerSession() {
+async function getOrCreatePuppeteerSession(options = {}) {
+  const { forceFreshPage = false } = options;
+
   const hasLiveBrowser =
     PUPPETEER_SESSION.browser &&
     typeof PUPPETEER_SESSION.browser.isConnected === "function" &&
@@ -66,6 +307,19 @@ async function getOrCreatePuppeteerSession() {
     PUPPETEER_SESSION.initialized = false;
   }
 
+  if (forceFreshPage && PUPPETEER_SESSION.browser) {
+    const previousPage = PUPPETEER_SESSION.page;
+
+    try {
+      if (previousPage && !previousPage.isClosed()) {
+        await previousPage.close();
+      }
+    } catch {}
+
+    const freshPage = await setupPage(PUPPETEER_SESSION.browser);
+    PUPPETEER_SESSION.page = freshPage;
+  }
+
   return {
     browser: PUPPETEER_SESSION.browser,
     page: PUPPETEER_SESSION.page,
@@ -73,6 +327,11 @@ async function getOrCreatePuppeteerSession() {
 }
 
 export async function emitirDteConPuppeteer(dteJson) {
+  const fastRedirectRetryCount = Number(dteJson?.__fastRedirectRetryCount || 0);
+  const MAX_FAST_REDIRECT_RETRIES = 1;
+  const pdfRetryCount = Number(dteJson?.__pdfRetryCount || 0);
+  const MAX_PDF_RETRIES = 1;
+  const isBulkEmission = dteJson?.masivo === true;
   const shouldCloseSessionOnAtypicalError = dteJson?.masivo === true ? false : true;
   const tipoDTE = String(dteJson?.TipoDTE);
   const DTE_URL = `https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=${tipoDTE}`;
@@ -117,7 +376,10 @@ export async function emitirDteConPuppeteer(dteJson) {
   const fechaSiiIso = FchEmis;
   const FORMA_PAGO = String(dteJson?.Encabezado?.IdDoc?.FmaPago || "1");
 
-  const { browser, page } = await getOrCreatePuppeteerSession();
+  const useFreshPageForBulk = dteJson?.masivo === true && PUPPETEER_SESSION.initialized === true;
+  const { browser, page } = await getOrCreatePuppeteerSession({
+    forceFreshPage: useFreshPageForBulk,
+  });
   const siiRuntimeErrors = [];
 
   const onDialog = async (dialog) => {
@@ -127,6 +389,10 @@ export async function emitirDteConPuppeteer(dteJson) {
       await dialog.accept();
     } catch {}
   };
+
+  const stopBrowserDebugLogging = createBrowserDebugLogger(page, {
+    enabled: DEBUG_BROWSER_LOG,
+  });
 
   page.on("dialog", onDialog);
 
@@ -194,9 +460,10 @@ export async function emitirDteConPuppeteer(dteJson) {
     // 1. Login y Selección de Empresa (solo una vez por sesión)
     if (!PUPPETEER_SESSION.initialized) {
       await loginSii(page, RUT, DV, PASS);
-      await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
       PUPPETEER_SESSION.initialized = true;
     }
+
+    await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
     
     // 2. Navegar al Formulario de Emisión
     await page.goto(DTE_URL, { waitUntil: 'networkidle2' });
@@ -331,7 +598,7 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     // 6. FORMA DE PAGO
     await page.select('select[name="EFXP_FMA_PAGO"]', FORMA_PAGO);
-    await sleep(1000);
+    await sleep(500);
     await throwIfSiiErrors();
 
     //
@@ -340,8 +607,6 @@ export async function emitirDteConPuppeteer(dteJson) {
     // pero necesitamos rut para emitir facturas
     //
 
-    /*
-  
     await clickByExactText(page, 'Validar y visualizar');
 
     // 7. Proceso de Firma Electrónica
@@ -349,61 +614,179 @@ export async function emitirDteConPuppeteer(dteJson) {
     await clickByExactText(page, 'Firmar');
     await page.waitForSelector('input#myPass', { visible: true });
     await page.type('input#myPass', SII_PASS, { delay: 20 });
-    
+
+    const sendXmlSeenAt = { value: 0 };
+    const facturaSiiSeenAt = { value: 0 };
+    const onPostSignNavigation = (frame) => {
+      if (frame !== page.mainFrame()) return;
+      const currentUrl = String(frame.url() || "");
+      if (currentUrl.includes("/cgi-bin/Portal001/mipeSendXML.cgi")) {
+        sendXmlSeenAt.value = Date.now();
+      }
+      if (currentUrl.includes("/factura_sii/factura_sii.htm")) {
+        facturaSiiSeenAt.value = Date.now();
+      }
+    };
+    page.on("framenavigated", onPostSignNavigation);
+
+    const sendXmlResponsePromise = page
+      .waitForResponse(
+        (response) => response.url().includes('/cgi-bin/Portal001/mipeSendXML.cgi'),
+        { timeout: 10000 }
+      )
+      .catch(() => null);
+
     await clickByExactText(page, 'Firmar'); 
+
+    await sleep(3000);
+    
+
+    // va a www1.sii.cl/cgi-bin/Portal001/mipeSendXML.cgi
+    // luego de un milisegundo cambia a www1.sii.cl/factura_sii/factura_sii.htm
+
+    const sendXmlResponse = await sendXmlResponsePromise;
+    if (sendXmlResponse && sendXmlSeenAt.value === 0) {
+      sendXmlSeenAt.value = Date.now();
+    }
+
+    let folioFromSendXml = null;
+    if (sendXmlResponse) {
+      try {
+        const sendXmlText = await sendXmlResponse.text();
+        folioFromSendXml =
+          extractFolioFromText(sendXmlText) ||
+          extractFolioFromUrl(sendXmlResponse.url());
+      } catch {}
+    }
+
+    const folioFromSignedPage =
+      folioFromSendXml ||
+      (await extractFolioFromCurrentPage(page)) ||
+      extractFolioFromUrl(page.url());
+
+    const fastRedirectDetectedByNavigation =
+      sendXmlSeenAt.value > 0 &&
+      facturaSiiSeenAt.value > 0 &&
+      facturaSiiSeenAt.value >= sendXmlSeenAt.value &&
+      facturaSiiSeenAt.value - sendXmlSeenAt.value <= 1200;
+
+    const fastRedirectDetectedByUrlFallback =
+      Boolean(sendXmlResponse) &&
+      String(page.url() || "").includes("/factura_sii/factura_sii.htm");
+
+    const fastRedirectDetected =
+      fastRedirectDetectedByNavigation ||
+      fastRedirectDetectedByUrlFallback;
+
+    page.off("framenavigated", onPostSignNavigation);
+
+    if (fastRedirectDetected && fastRedirectRetryCount < MAX_FAST_REDIRECT_RETRIES) {
+      throw new Error("FAST_REDIRECT_AFTER_SIGN");
+    }
+
+    await sleep(5000);
 
     // 8. Captura Binaria del PDF
     const pdfPagePromise = waitForPdfPage(browser);
     await clickByExactText(page, 'Ver Documento');
-    const pdfPage = await pdfPagePromise;
+    const pdfPage = await pdfPagePromise.catch(() => null);
 
-    const folioFromPage = await pdfPage.evaluate(() => {
-      const bodyText = String(document.body?.innerText || "");
-      return bodyText;
-    });
-    const folio = extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
+    if (!pdfPage) {
+      throw new Error("PDF_NOT_OBTAINED");
+    }
 
-    // Extraemos el PDF usando la sesión activa del navegador
-    const result = await pdfPage.evaluate(async () => {
-      const response = await fetch(window.location.href);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve({ base64: reader.result.split(',')[1], size: blob.size });
-        reader.readAsDataURL(blob);
+    let finalPath;
+    let folio;
+
+    console.log("📄 Página del PDF detectada, extrayendo contenido...");
+    try {
+      const folioFromPage = await pdfPage.evaluate(() => String(document.body?.innerText || ""));
+      folio = folioFromSignedPage || extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
+
+      const result = await pdfPage.evaluate(async () => {
+        const response = await fetch(window.location.href, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(`No se pudo descargar el PDF (HTTP ${response.status})`);
+        }
+
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = String(reader.result || "").split(",")[1] || "";
+            resolve({ base64, size: blob.size });
+          };
+          reader.readAsDataURL(blob);
+        });
+      }).catch(() => {
+        throw new Error("PDF_NOT_OBTAINED");
       });
-    });
 
-    const finalBuffer = Buffer.from(result.base64, 'base64');
+      const finalBuffer = Buffer.from(result.base64, 'base64');
+      if (finalBuffer.toString('utf8', 0, 4) !== '%PDF') {
+        throw new Error("PDF_NOT_OBTAINED");
+      }
 
-    // Validación de integridad (Magic Bytes)
-    if (finalBuffer.toString('utf8', 0, 4) !== '%PDF') {
-      throw new Error("El archivo capturado no es un PDF válido.");
+      if (!fs.existsSync(MODULE_CONFIG.DOWNLOAD_PATH)) {
+        await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
+      }
+
+      const fileName = folio
+        ? `FACTURA_FOLIO_${folio}.pdf`
+        : `FACTURA_FOLIO_${Date.now()}.pdf`;
+      finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
+      await fs.promises.writeFile(finalPath, finalBuffer);
+
+      console.log(`✅ DTE emitido exitosamente. Folio: ${folio || "No encontrado"}`);
+    } finally {
+      try {
+        if (!pdfPage.isClosed()) {
+          await pdfPage.close();
+        }
+      } catch {}
+
+      try {
+        await page.bringToFront();
+      } catch {}
     }
 
-    // 9. Guardado Final
-    if (!fs.existsSync(MODULE_CONFIG.DOWNLOAD_PATH)) {
-      await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
-    }
-
-    const fileName = folio
-      ? `FACTURA_FOLIO_${folio}.pdf`
-      : `FACTURA_FOLIO_${Date.now()}.pdf`;
-    const finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
-    await fs.promises.writeFile(finalPath, finalBuffer);
-    */
     return {
       ok: true,
-      // mensaje: "DTE validado exitosamente.",
-      // path: finalPath,
-      // folio: folio || undefined,
+      mensaje: "DTE validado exitosamente.",
+      path: finalPath,
+      folio: folio || undefined,
     };
   } catch (err) {
     console.error(`❌ Error en Emisión: ${err.message}`);
     const errorMessage = String(err?.message || "").toLowerCase();
+    const isFastRedirectAfterSign = errorMessage.includes("fast_redirect_after_sign");
+    const isPdfNotObtained =
+      errorMessage.includes("pdf_not_obtained") ||
+      (errorMessage.includes("pdf") && errorMessage.includes("timeout")) ||
+      (errorMessage.includes("pdf") && errorMessage.includes("waiting"));
     const isMaxAuthenticatedSessions =
       errorMessage.includes("maximo de sesiones autenticadas") ||
       errorMessage.includes("máximo de sesiones autenticadas");
+
+    if (isFastRedirectAfterSign && fastRedirectRetryCount < MAX_FAST_REDIRECT_RETRIES) {
+      console.warn("🔁 Redirección rápida detectada tras firmar. Reintentando emisión...");
+      await closePuppeteerSession();
+      await sleep(1000);
+      return await emitirDteConPuppeteer({
+        ...dteJson,
+        __fastRedirectRetryCount: fastRedirectRetryCount + 1,
+      });
+    }
+
+    if (isPdfNotObtained && pdfRetryCount < MAX_PDF_RETRIES) {
+      console.warn("🔁 No se pudo obtener el PDF. Reintentando emisión...");
+      await closePuppeteerSession();
+      await sleep(1000);
+      return await emitirDteConPuppeteer({
+        ...dteJson,
+        __pdfRetryCount: pdfRetryCount + 1,
+      });
+    }
 
     if (isMaxAuthenticatedSessions) {
       PUPPETEER_SESSION.initialized = false;
@@ -423,5 +806,6 @@ export async function emitirDteConPuppeteer(dteJson) {
     };
   } finally {
     page.off("dialog", onDialog);
+    stopBrowserDebugLogging();
   }
 }

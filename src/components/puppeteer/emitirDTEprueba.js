@@ -27,11 +27,179 @@ const MODULE_CONFIG = {
   DOWNLOAD_PATH: path.resolve(process.cwd(), "./tmp"),
 };
 
+const DEBUG_BROWSER_LOG = /^(1|true|yes|on|debug)$/i.test(String(process.env.DTE_BROWSER_LOG || ""));
+
 const PUPPETEER_SESSION = {
   browser: null,
   page: null,
   initialized: false,
 };
+
+const SII_LOGOUT_URL = "https://zeusr.sii.cl/cgi_AUT2000/autTermino.cgi";
+const SII_BASE_ORIGIN = "https://zeusr.sii.cl";
+
+function createBrowserDebugLogger(page, options = {}) {
+  const { enabled = false } = options;
+  if (!enabled || !page) {
+    return () => {};
+  }
+
+  const safeString = (value, max = 220) => {
+    const text = String(value ?? "").replace(/\s+/g, " ").trim();
+    if (!text) return "";
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  };
+
+  const log = (event, message) => {
+    const ts = new Date().toISOString();
+    console.log(`[BrowserLog][${ts}][${event}] ${message}`);
+  };
+
+  const onRequest = (request) => {
+    const url = request.url();
+    const method = request.method();
+    const resourceType = request.resourceType?.() || "other";
+    const redirectChain = request.redirectChain?.() || [];
+
+    if (redirectChain.length > 0) {
+      const chain = redirectChain.map((item) => safeString(item.url())).join(" -> ");
+      log("request", `${method} ${safeString(url)} (type=${resourceType}, redirects=${redirectChain.length}, chain=${chain})`);
+      return;
+    }
+
+    log("request", `${method} ${safeString(url)} (type=${resourceType})`);
+  };
+
+  const onResponse = (response) => {
+    const request = response.request();
+    const status = response.status();
+    const url = response.url();
+    const method = request?.method?.() || "GET";
+    const redirectHeader = response.headers?.().location;
+
+    if (redirectHeader || status >= 300 && status < 400) {
+      log("response", `${status} ${method} ${safeString(url)}${redirectHeader ? ` -> ${safeString(redirectHeader)}` : ""}`);
+      return;
+    }
+
+    log("response", `${status} ${method} ${safeString(url)}`);
+  };
+
+  const onRequestFailed = (request) => {
+    const failure = request.failure?.();
+    const reason = safeString(failure?.errorText || "unknown");
+    log("requestfailed", `${request.method()} ${safeString(request.url())} (reason=${reason})`);
+  };
+
+  const onFrameNavigated = (frame) => {
+    if (frame !== page.mainFrame()) return;
+    log("navigation", safeString(frame.url()));
+  };
+
+  const onConsole = (msg) => {
+    const txt = safeString(msg.text(), 300);
+    if (!txt) return;
+    log(`console:${msg.type()}`, txt);
+  };
+
+  const onPageError = (error) => {
+    log("pageerror", safeString(error?.message || error, 300));
+  };
+
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfailed", onRequestFailed);
+  page.on("framenavigated", onFrameNavigated);
+  page.on("console", onConsole);
+  page.on("pageerror", onPageError);
+
+  log("status", `Browser logging enabled for page ${safeString(page.url()) || "about:blank"}`);
+
+  return () => {
+    page.off("request", onRequest);
+    page.off("response", onResponse);
+    page.off("requestfailed", onRequestFailed);
+    page.off("framenavigated", onFrameNavigated);
+    page.off("console", onConsole);
+    page.off("pageerror", onPageError);
+    log("status", "Browser logging disabled");
+  };
+}
+
+function extractFolioFromText(text) {
+  const source = String(text || "");
+  if (!source) return null;
+
+  const patterns = [
+    /folio\s*[:#-]?\s*(\d{1,12})/i,
+    /n[°º]\s*[:#-]?\s*(\d{1,12})/i,
+    /documento\s*[:#-]?\s*(\d{1,12})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+}
+
+function extractFolioFromUrl(url) {
+  const source = String(url || "");
+  if (!source) return null;
+
+  try {
+    const parsed = new URL(source);
+    const queryCandidates = ["FOLIO", "folio", "NRODOC", "nrodoc", "DOC", "doc"];
+    for (const key of queryCandidates) {
+      const value = parsed.searchParams.get(key);
+      if (value && /^\d{1,12}$/.test(value)) return value;
+    }
+  } catch {}
+
+  const pathMatch = source.match(/(?:folio|doc|nrodoc)[=:/-](\d{1,12})/i);
+  if (pathMatch?.[1]) return pathMatch[1];
+
+  return null;
+}
+
+async function extractFolioFromCurrentPage(page) {
+  try {
+    const candidates = await page.evaluate(() => {
+      const selectors = [
+        "#folio",
+        "[id*='folio' i]",
+        "[name*='folio' i]",
+        ".folio",
+        "td",
+        "th",
+        "span",
+        "div",
+      ];
+
+      const values = [];
+      for (const selector of selectors) {
+        const nodes = document.querySelectorAll(selector);
+        nodes.forEach((node) => {
+          const text = String(node?.textContent || "").trim();
+          if (text) values.push(text);
+        });
+      }
+
+      const bodyText = String(document.body?.innerText || "").trim();
+      if (bodyText) values.push(bodyText);
+
+      return values;
+    });
+
+    for (const candidate of candidates) {
+      const folio = extractFolioFromText(candidate);
+      if (folio) return folio;
+    }
+  } catch {}
+
+  return null;
+}
 
 async function closePuppeteerSession() {
   try {
@@ -46,12 +214,85 @@ async function closePuppeteerSession() {
   PUPPETEER_SESSION.initialized = false;
 }
 
+async function cerrarSesionSiiDesdePagina(page) {
+  if (!page || page.isClosed?.()) return;
+
+  try {
+    const clickedLogout = await page.evaluate(() => {
+      const anchors = Array.from(document.querySelectorAll("a"));
+      const byText = anchors.find((anchor) =>
+        /cerrar\s*sesi[oó]n/i.test(String(anchor.textContent || "").trim())
+      );
+
+      if (byText) {
+        byText.click();
+        return true;
+      }
+
+      const byHref = anchors.find((anchor) => /autTermino\.cgi/i.test(String(anchor.href || "")));
+      if (byHref) {
+        byHref.click();
+        return true;
+      }
+
+      return false;
+    });
+
+    if (clickedLogout) {
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 12000 }).catch(() => {});
+      return;
+    }
+
+    await page.goto(SII_LOGOUT_URL, { waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+  } catch {
+    await page.goto(SII_LOGOUT_URL, { waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+  }
+}
+
+async function limpiarEstadoNavegadorSii(browser, page) {
+  if (!browser || !page || page.isClosed?.()) return;
+
+  try {
+    const pages = await browser.pages();
+    for (const browserPage of pages) {
+      if (browserPage !== page) {
+        try {
+          await browserPage.close();
+        } catch {}
+      }
+    }
+  } catch {}
+
+  try {
+    const client = await page.target().createCDPSession();
+    await client.send("Network.clearBrowserCookies");
+    await client.send("Network.clearBrowserCache");
+    await client.detach();
+  } catch {}
+
+  try {
+    await page.goto(SII_BASE_ORIGIN, { waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {});
+    await page.evaluate(async () => {
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      try {
+        if (window.caches && typeof window.caches.keys === "function") {
+          const cacheKeys = await window.caches.keys();
+          await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
+        }
+      } catch {}
+    });
+  } catch {}
+}
+
 export async function cerrarSesionDtePuppeteer() {
   await closePuppeteerSession();
   return { ok: true, message: "Sesión de Puppeteer cerrada correctamente." };
 }
 
-async function getOrCreatePuppeteerSession() {
+async function getOrCreatePuppeteerSession(options = {}) {
+  const { forceFreshPage = false } = options;
+
   const hasLiveBrowser =
     PUPPETEER_SESSION.browser &&
     typeof PUPPETEER_SESSION.browser.isConnected === "function" &&
@@ -66,6 +307,19 @@ async function getOrCreatePuppeteerSession() {
     PUPPETEER_SESSION.initialized = false;
   }
 
+  if (forceFreshPage && PUPPETEER_SESSION.browser) {
+    const previousPage = PUPPETEER_SESSION.page;
+
+    try {
+      if (previousPage && !previousPage.isClosed()) {
+        await previousPage.close();
+      }
+    } catch {}
+
+    const freshPage = await setupPage(PUPPETEER_SESSION.browser);
+    PUPPETEER_SESSION.page = freshPage;
+  }
+
   return {
     browser: PUPPETEER_SESSION.browser,
     page: PUPPETEER_SESSION.page,
@@ -73,6 +327,7 @@ async function getOrCreatePuppeteerSession() {
 }
 
 export async function emitirDteConPuppeteer(dteJson) {
+  const isBulkEmission = dteJson?.masivo === true;
   const shouldCloseSessionOnAtypicalError = dteJson?.masivo === true ? false : true;
   const tipoDTE = String(dteJson?.TipoDTE);
   const DTE_URL = `https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=${tipoDTE}`;
@@ -117,7 +372,10 @@ export async function emitirDteConPuppeteer(dteJson) {
   const fechaSiiIso = FchEmis;
   const FORMA_PAGO = String(dteJson?.Encabezado?.IdDoc?.FmaPago || "1");
 
-  const { browser, page } = await getOrCreatePuppeteerSession();
+  const useFreshPageForBulk = dteJson?.masivo === true && PUPPETEER_SESSION.initialized === true;
+  const { browser, page } = await getOrCreatePuppeteerSession({
+    forceFreshPage: useFreshPageForBulk,
+  });
   const siiRuntimeErrors = [];
 
   const onDialog = async (dialog) => {
@@ -127,6 +385,10 @@ export async function emitirDteConPuppeteer(dteJson) {
       await dialog.accept();
     } catch {}
   };
+
+  const stopBrowserDebugLogging = createBrowserDebugLogger(page, {
+    enabled: DEBUG_BROWSER_LOG,
+  });
 
   page.on("dialog", onDialog);
 
@@ -194,9 +456,10 @@ export async function emitirDteConPuppeteer(dteJson) {
     // 1. Login y Selección de Empresa (solo una vez por sesión)
     if (!PUPPETEER_SESSION.initialized) {
       await loginSii(page, RUT, DV, PASS);
-      await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
       PUPPETEER_SESSION.initialized = true;
     }
+
+    await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
     
     // 2. Navegar al Formulario de Emisión
     await page.goto(DTE_URL, { waitUntil: 'networkidle2' });
@@ -331,7 +594,7 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     // 6. FORMA DE PAGO
     await page.select('select[name="EFXP_FMA_PAGO"]', FORMA_PAGO);
-    await sleep(1000);
+    await sleep(500);
     await throwIfSiiErrors();
 
     //
@@ -340,51 +603,71 @@ export async function emitirDteConPuppeteer(dteJson) {
     // pero necesitamos rut para emitir facturas
     //
 
-    /*
-  
     await clickByExactText(page, 'Validar y visualizar');
+    await sleep(5000);
 
     // 7. Proceso de Firma Electrónica
     await clickByExactText(page, 'Firmar');
+    await sleep(5000);
     await clickByExactText(page, 'Firmar');
+    await sleep(5000);
     await page.waitForSelector('input#myPass', { visible: true });
+    await sleep(5000);
     await page.type('input#myPass', SII_PASS, { delay: 20 });
+
+    console.log("🔐 Contraseña de firma ingresada, procediendo a firmar el DTE...");
+
+    await sleep(5000);
     
     await clickByExactText(page, 'Firmar'); 
+
+    console.log("⌛ Esperando a que el SII procese la firma del DTE...");
+    
+    await sleep(5000);
+    
+
+    // va a www1.sii.cl/cgi-bin/Portal001/mipeSendXML.cgi
+    // luego de un milisegundo cambia a www1.sii.cl/factura_sii/factura_sii.htm
+    const folioFromSignedPage = await extractFolioFromCurrentPage(page);
+
+    console.log(`Folio extraído después de la firma: ${folioFromSignedPage || "No encontrado"}`);
+    await sleep(5000);
 
     // 8. Captura Binaria del PDF
     const pdfPagePromise = waitForPdfPage(browser);
     await clickByExactText(page, 'Ver Documento');
     const pdfPage = await pdfPagePromise;
+
     let finalPath;
     let folio;
 
+    console.log("📄 Página del PDF detectada, extrayendo contenido...");
     try {
-      const folioFromPage = await pdfPage.evaluate(() => {
-        const bodyText = String(document.body?.innerText || "");
-        return bodyText;
-      });
-      folio = extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
+      const folioFromPage = await pdfPage.evaluate(() => String(document.body?.innerText || ""));
+      folio = folioFromSignedPage || extractFolioFromText(folioFromPage) || extractFolioFromUrl(pdfPage.url());
 
-      // Extraemos el PDF usando la sesión activa del navegador
       const result = await pdfPage.evaluate(async () => {
-        const response = await fetch(window.location.href);
+        const response = await fetch(window.location.href, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(`No se pudo descargar el PDF (HTTP ${response.status})`);
+        }
+
         const blob = await response.blob();
         return new Promise((resolve) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve({ base64: reader.result.split(',')[1], size: blob.size });
+          reader.onloadend = () => {
+            const base64 = String(reader.result || "").split(",")[1] || "";
+            resolve({ base64, size: blob.size });
+          };
           reader.readAsDataURL(blob);
         });
       });
 
       const finalBuffer = Buffer.from(result.base64, 'base64');
-
-      // Validación de integridad (Magic Bytes)
       if (finalBuffer.toString('utf8', 0, 4) !== '%PDF') {
         throw new Error("El archivo capturado no es un PDF válido.");
       }
 
-      // 9. Guardado Final
       if (!fs.existsSync(MODULE_CONFIG.DOWNLOAD_PATH)) {
         await fs.promises.mkdir(MODULE_CONFIG.DOWNLOAD_PATH, { recursive: true });
       }
@@ -394,6 +677,8 @@ export async function emitirDteConPuppeteer(dteJson) {
         : `FACTURA_FOLIO_${Date.now()}.pdf`;
       finalPath = path.join(MODULE_CONFIG.DOWNLOAD_PATH, fileName);
       await fs.promises.writeFile(finalPath, finalBuffer);
+
+      console.log(`✅ DTE emitido exitosamente. Folio: ${folio || "No encontrado"}`);
     } finally {
       try {
         if (!pdfPage.isClosed()) {
@@ -405,12 +690,12 @@ export async function emitirDteConPuppeteer(dteJson) {
         await page.bringToFront();
       } catch {}
     }
-    */
+
     return {
       ok: true,
-      // mensaje: "DTE validado exitosamente.",
-      // path: finalPath,
-      // folio: folio || undefined,
+      mensaje: "DTE validado exitosamente.",
+      path: finalPath,
+      folio: folio || undefined,
     };
   } catch (err) {
     console.error(`❌ Error en Emisión: ${err.message}`);
@@ -437,5 +722,6 @@ export async function emitirDteConPuppeteer(dteJson) {
     };
   } finally {
     page.off("dialog", onDialog);
+    stopBrowserDebugLogging();
   }
 }

@@ -110,18 +110,24 @@ export async function clickByExactText(page, text, timeout = 20000) {
 }
 
 export async function waitForPdfPage(browser, timeoutMs = 30000) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Búnker Error: El PDF nunca se generó.")), timeoutMs);
-    
-    browser.on('targetcreated', async (target) => {
-      if (target.type() === 'page') {
-        const newPage = await target.page();
-        const url = newPage.url();
-        if (url.includes("mipeDisplayPDF") || url.toLowerCase().includes(".pdf")) {
-          clearTimeout(timeout);
-          resolve(newPage);
-        }
-      }
-    });
-  });
+  const isPdfLikeTarget = (target) => {
+    if (!target || target.type() !== "page") return false;
+    const url = String(target.url() || "").toLowerCase();
+    return url.includes("mipedisplaypdf") || url.includes(".pdf");
+  };
+
+  const existingTarget = browser.targets().find(isPdfLikeTarget);
+  if (existingTarget) {
+    const page = await existingTarget.page();
+    if (page) return page;
+  }
+
+  const target = await browser.waitForTarget(isPdfLikeTarget, { timeout: timeoutMs });
+  const page = await target.page();
+
+  if (!page) {
+    throw new Error("Búnker Error: El PDF se abrió, pero no se pudo obtener la página.");
+  }
+
+  return page;
 }
