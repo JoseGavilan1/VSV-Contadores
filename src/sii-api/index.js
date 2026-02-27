@@ -4,23 +4,20 @@ import forge from "node-forge";
 import { SignedXml } from "xml-crypto";
 import path from "path";
 import { fileURLToPath } from "url";
-import 'dotenv/config'; // <-- Importación para leer el archivo .env
+import 'dotenv/config'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ====== CONFIGURACIÓN SEGURA ======
 const CERT_PATH = path.join(__dirname, "cert.p12.pfx");
-const CERT_PASS = process.env.SII_PFX_PASS; // <-- Leemos directamente del .env
+const CERT_PASS = process.env.SII_PFX_PASS; 
 
-// Validación de seguridad para evitar caídas silenciosas
 if (!CERT_PASS) {
-    console.error("❌ ERROR CRÍTICO: No se encontró la variable SII_PFX_PASS en el archivo .env");
-    process.exit(1);
+    throw new Error("No se encontró la variable SII_PFX_PASS en el archivo .env");
 }
-
-const URL_SEED = "https://maullin.sii.cl/DTEWS/CrSeed.jws";
-const URL_TOKEN = "https://maullin.sii.cl/DTEWS/GetTokenFromSeed.jws";
+// Cambia esto en index.js
+const URL_SEED = "https://palena.sii.cl/DTEWS/CrSeed.jws";
+const URL_TOKEN = "https://palena.sii.cl/DTEWS/GetTokenFromSeed.jws";
 
 async function getSeed() {
   const soap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -47,7 +44,6 @@ function signSeed(seed) {
   const cert = certBags[0].cert;
   const certPem = forge.pki.certificateToPem(cert).replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\r?\n|\r|\s+/g, "");
 
-  // EXTRAEMOS MODULUS Y EXPONENT
   const publicKey = cert.publicKey;
   let nHex = publicKey.n.toString(16);
   if (nHex.length % 2 !== 0) nHex = '0' + nHex;
@@ -78,7 +74,6 @@ function signSeed(seed) {
 
   let signedXml = sig.getSignedXml();
   
-  // --- INYECCIÓN MANUAL (El fix definitivo para el Estado 11) ---
   const keyInfoXml = `<KeyInfo><KeyValue><RSAKeyValue><Modulus>${modulus}</Modulus><Exponent>${exponent}</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>${certPem}</X509Certificate></X509Data></KeyInfo>`;
   signedXml = signedXml.replace("</Signature>", keyInfoXml + "</Signature>");
   signedXml = signedXml.replace(/>\s+</g, "><"); 
@@ -102,31 +97,20 @@ async function getToken(signedXml) {
   return response.data;
 }
 
-async function main() {
-  try {
-    console.log("🔄 Obteniendo semilla...");
-    const seed = await getSeed();
-    console.log("✅ SEMILLA:", seed);
-
-    console.log("🔐 Firmando e Inyectando Certificado...");
-    const signed = signSeed(seed);
-
-    console.log("📡 Solicitando Token al SII...");
-    const res = await getToken(signed);
-    
-    const tokenMatch = res.replace(/&lt;/g, '<').replace(/&gt;/g, '>').match(/<TOKEN>(.*?)<\/TOKEN>/);
-    
-    if (tokenMatch) {
-      console.log("\n========================================");
-      console.log("🚀 ¡ÉXITO! TOKEN OBTENIDO: " + tokenMatch[1]);
-      console.log("========================================\n");
-    } else {
-      console.log("\n⚠️ Respuesta del SII (Revisar Estado):");
-      console.log(res);
+// ESTA ES LA FUNCIÓN MAESTRA QUE EXPORTAMOS
+export async function obtenerTokenSII() {
+    try {
+        const seed = await getSeed();
+        const signed = signSeed(seed);
+        const res = await getToken(signed);
+        
+        const tokenMatch = res.replace(/&lt;/g, '<').replace(/&gt;/g, '>').match(/<TOKEN>(.*?)<\/TOKEN>/);
+        if (tokenMatch) {
+            return tokenMatch[1]; // Retorna solo el string del token
+        } else {
+            throw new Error("Fallo en el SII: " + res);
+        }
+    } catch (error) {
+        throw new Error("Error obteniendo Token: " + error.message);
     }
-  } catch (error) {
-    console.error("\n❌ ERROR DE EJECUCIÓN:", error.message);
-  }
 }
-
-main();
