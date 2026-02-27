@@ -17,7 +17,7 @@ function imprimirResumen(datos) {
     console.log(`👥 Representantes : ${datos.representantes.length} encontrados`);
     console.log("=======================================================\n");
 }
-
+ 
 async function main() {
     // Captura argumentos: node index.mjs 12345678-9 clave123
     const args = process.argv.slice(2);
