@@ -9,7 +9,6 @@ import {
   sleep,
   waitForPdfPage
 } from "../../lib/siiBase.js";
-import { delay } from "framer-motion";
 
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
@@ -96,60 +95,13 @@ export async function emitirDteConPuppeteer(dteJson) {
   if (!FchEmis || typeof FchEmis !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(FchEmis)) {
     return { ok: false, error: "Fecha de emisión inválida. Se espera formato YYYY-MM-DD" };
   }
-
   const fechaSiiIso = FchEmis;
-
   const FORMA_PAGO = String(dteJson?.Encabezado?.IdDoc?.FmaPago || "1");
 
   const { browser, page } = await getOrCreatePuppeteerSession();
-  const siiRuntimeErrors = [];
-
-  const onDialog = async (dialog) => {
-    const message = String(dialog?.message?.() || "").trim();
-    if (message) siiRuntimeErrors.push(message);
-    try {
-      await dialog.accept();
-    } catch {}
-  };
-
-  page.on("dialog", onDialog);
 
   try {
-    const extractFolioFromText = (text) => {
-      const normalized = String(text || "").replace(/\s+/g, " ").trim();
-      if (!normalized) return "";
-
-      const patterns = [
-        /factura\s+electronica\s*n[°ºo]?\s*([0-9]{1,6})/i,
-        /folio\s*[:#-]?\s*([0-9]{1,6})/i,
-        /n[°ºo]\s*([0-9]{1,6})/i,
-      ];
-
-      for (const pattern of patterns) {
-        const match = normalized.match(pattern);
-        if (match?.[1]) return match[1];
-      }
-
-      return "";
-    };
-
-    const extractFolioFromUrl = (url) => {
-      const normalized = String(url || "");
-      const patterns = [
-        /[?&]folio=([0-9]{1,6})/i,
-        /[?&]nro=([0-9]{1,6})/i,
-        /[?&]numero=([0-9]{1,6})/i,
-        /[?&]num=([0-9]{1,6})/i,
-      ];
-
-      for (const pattern of patterns) {
-        const match = normalized.match(pattern);
-        if (match?.[1]) return match[1];
-      }
-
-      return "";
-    };
-
+    // Limpiar actual y dejar nuevo
     const clearAndType = async (selector, value, options = {}) => {
       if (value === undefined || value === null || String(value).trim() === "") return false;
 
@@ -161,172 +113,15 @@ export async function emitirDteConPuppeteer(dteJson) {
       return true;
     };
 
-    const clearAndTypeFirstAvailable = async (selectors, value) => {
-      if (value === undefined || value === null || String(value).trim() === "") return false;
-
-      for (const selector of selectors) {
-        const found = await page.$(selector);
-        if (found) {
-          await clearAndType(selector, value);
-          return true;
-        }
-      }
-
-      throw new Error(`No se encontró selector para: ${selectors.join(", ")}`);
-    };
-
-    const setTextareaValueFirstAvailable = async (selectors, value) => {
-      if (value === undefined || value === null || String(value).trim() === "") return false;
-
-      for (const selector of selectors) {
-        const found = await page.$(selector);
-        if (!found) continue;
-
-        await page.evaluate((sel, val) => {
-          const el = document.querySelector(sel);
-          if (!el) return;
-          el.focus();
-          el.value = "";
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-          el.value = String(val);
-          el.dispatchEvent(new Event("input", { bubbles: true }));
-          el.dispatchEvent(new Event("change", { bubbles: true }));
-          el.blur();
-        }, selector, String(value));
-
-        return true;
-      }
-
-      return false;
-    };
-
-    const hasInputValueFirstAvailable = async (selectors, expectedValue) => {
-      for (const selector of selectors) {
-        const found = await page.$(selector);
-        if (!found) continue;
-
-        const ok = await page.evaluate((sel, expected) => {
-          const el = document.querySelector(sel);
-          if (!el) return false;
-          return String(el.value || "").trim() === String(expected || "").trim();
-        }, selector, expectedValue);
-
-        if (ok) return true;
-      }
-
-      return false;
-    };
-
-    const throwIfSiiErrors = async () => {
-      if (siiRuntimeErrors.length > 0) {
-        throw new Error(siiRuntimeErrors[0]);
-      }
-
-      const inlineErrors = await page.evaluate(() => {
-        const candidates = Array.from(
-          document.querySelectorAll(
-            '.alert-danger, .alert-error, .text-danger, .has-error .help-block, .error, .mensajeError, .msgError, .help-inline'
-          )
-        )
-          .map((el) => (el.textContent || "").trim())
-          .filter(Boolean)
-          .filter((text) => text.length > 3);
-
-        return Array.from(new Set(candidates));
-      });
-
-      if (inlineErrors.length > 0) {
-        throw new Error(inlineErrors[0]);
-      }
-    };
-
-    const throwIfSiiQueue = async () => {
-      const currentUrl = String(page.url() || "").toLowerCase();
-      if (currentUrl.includes("salaespera.sii.cl") || currentUrl.includes("salaespera")) {
-        throw new Error("SII está en sala de espera. Intenta nuevamente en unos minutos.");
-      }
-
-      const isQueuePage = await page.evaluate(() => {
-        const bodyText = (document.body?.innerText || "").toLowerCase();
-        return (
-          bodyText.includes("pronto será tu turno") ||
-          bodyText.includes("por favor, espera en línea") ||
-          bodyText.includes("salaespera.sii.cl")
-        );
-      });
-
-      if (isQueuePage) {
-        throw new Error("SII está saturado (sala de espera). Intenta nuevamente más tarde.");
-      }
-    };
-
-    const throwIfMaxAuthenticatedSessions = async () => {
-      const maxSessionsDetected = await page.evaluate(() => {
-        const bodyText = String(document.body?.innerText || "").toLowerCase();
-        return (
-          bodyText.includes("maximo de sesiones autenticadas") ||
-          bodyText.includes("máximo de sesiones autenticadas") ||
-          bodyText.includes("01.01.139.500.709.27")
-        );
-      });
-
-      if (maxSessionsDetected) {
-        throw new Error(
-          "SII bloqueó la sesión por máximo de sesiones autenticadas. Cierra sesiones activas en SII y vuelve a intentar."
-        );
-      }
-    };
-
-    const ensureCheckedFirstAvailable = async (selectors) => {
-      for (const selector of selectors) {
-        const found = await page.$(selector);
-        if (!found) continue;
-
-        await page.evaluate((sel) => {
-          const el = document.querySelector(sel);
-          if (!el) return;
-          if (!el.checked) el.click();
-          el.dispatchEvent(new Event("change", { bubbles: true }));
-        }, selector);
-
-        return true;
-      }
-
-      return false;
-    };
-
-    const hasTextareaValue = async (selectors, expectedValue) => {
-      for (const selector of selectors) {
-        const found = await page.$(selector);
-        if (!found) continue;
-
-        const ok = await page.evaluate((sel, expected) => {
-          const el = document.querySelector(sel);
-          if (!el) return false;
-          return String(el.value || "").trim() === String(expected || "").trim();
-        }, selector, expectedValue);
-
-        if (ok) return true;
-      }
-
-      return false;
-    };
-
     // 1. Login y Selección de Empresa (solo una vez por sesión)
     if (!PUPPETEER_SESSION.initialized) {
       await loginSii(page, RUT, DV, PASS);
-      await throwIfMaxAuthenticatedSessions();
-      await throwIfSiiQueue();
       await seleccionarEmpresa(page, "VOLLAIRE Y OLIVOS");
-      await throwIfMaxAuthenticatedSessions();
-      await throwIfSiiQueue();
       PUPPETEER_SESSION.initialized = true;
     }
     
     // 2. Navegar al Formulario de Emisión
     await page.goto(DTE_URL, { waitUntil: 'networkidle2' });
-    await throwIfMaxAuthenticatedSessions();
-    await throwIfSiiQueue();
     await page.waitForSelector('#EFXP_RUT_RECEP', { visible: true });
 
     // 3. DATOS RECEPTOR
@@ -338,7 +133,7 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     await sleep(250);
 
-    // 3.2 Fecha de emisión (input type="date" => formato ISO YYYY-MM-DD)
+    // 3.2 Fecha de emisión
     const fechaSelector = 'input[name="EFXP_FCH_EMIS"]';
     await page.waitForSelector(fechaSelector, { visible: true });
     await page.evaluate((selector, value) => {
@@ -378,17 +173,11 @@ export async function emitirDteConPuppeteer(dteJson) {
 
     // 3.5 Contacto receptor
     if (CONTACTO_RECEPTOR) {
-      const contactoSelectors = [
-        'input[name="EFXP_CONTACTO"]',
-        'input[name="EFXP_CONTACTO_RECEP"]',
-        'input[name^="EFXP_CONTACTO"]',
-        'input[id="EFXP_CONTACTO"]',
-        'input[id^="EFXP_CONTACTO"]',
-      ];
+      const contactoSelector = 'input[name="EFXP_CONTACTO"]';
       try {
-        await clearAndTypeFirstAvailable(contactoSelectors, CONTACTO_RECEPTOR);
+        await clearAndType(contactoSelector, CONTACTO_RECEPTOR);
 
-        const persistedContacto = await hasInputValueFirstAvailable(contactoSelectors, CONTACTO_RECEPTOR);
+        const persistedContacto = await hasInputValue(contactoSelector, CONTACTO_RECEPTOR);
         if (!persistedContacto) {
           throw new Error("No se pudo persistir el contacto receptor");
         }
@@ -410,32 +199,23 @@ export async function emitirDteConPuppeteer(dteJson) {
       }
     }
 
-    await sleep(150);
-    await throwIfSiiErrors();
+    await sleep(100);
 
     // 4. TRANSPORTE
     if (RUT_TRANSPORTE || PATENTE_TRANSPORTE || RUT_CHOFER || NOMBRE_CHOFER) {
       try {
         await clearAndType('input[name="EFXP_RUT_TRANSPORTE"]', RUT_TRANSPORTE);
-        await clearAndTypeFirstAvailable(
-          ['input[name="EFXP_DV_TRANSPORTE"]', 'input[name="EFXP_DV_TRANS"]'],
-          DV_TRANSPORTE
-        );
+        await clearAndType('input[name="EFXP_DV_TRANSPORTE"]', DV_TRANSPORTE);
         await clearAndType('input[name="EFXP_PATENTE"]', PATENTE_TRANSPORTE);
-
         await clearAndType('input[name="EFXP_RUT_CHOFER"]', RUT_CHOFER);
-        await clearAndTypeFirstAvailable(
-          ['input[name="EFXP_DV_CHOFER"]', 'input[name="EFXP_DV_RUT_CHOFER"]'],
-          DV_CHOFER
-        );
+        await clearAndType('input[name="EFXP_DV_CHOFER"]', DV_CHOFER);
         await clearAndType('input[name="EFXP_NOMBRE_CHOFER"]', NOMBRE_CHOFER);
       } catch (transporteErr) {
         console.warn(`⚠️ No se pudo completar transporte: ${transporteErr.message}`);
       }
     }
 
-    await sleep(150);
-    await throwIfSiiErrors();
+    await sleep(100);
 
     // 5. DETALLE DEL PRODUCTO
     await page.click('td[data-title="Nombre Prod"]');
@@ -444,51 +224,13 @@ export async function emitirDteConPuppeteer(dteJson) {
     const descripcionItem = typeof DscItem === "string" ? DscItem.trim() : "";
     if (descripcionItem && descripcionItem !== "null") {
       try {
-        await ensureCheckedFirstAvailable([
-          'input[name="EFXP_IND_DESCRIP_01"]',
-          'input[name^="EFXP_IND_DESCRIP_"]',
-          '#rowDetalle_01 td[data-title="Descrip"] input[type="checkbox"]',
-          'td[data-title="Descrip"] input[type="checkbox"]',
-        ]);
-
-        const wroteDescription = await setTextareaValueFirstAvailable(
-          [
-            'textarea[name="EFXP_DSC_ITEM_01"]',
-            'textarea[name^="EFXP_DSC_ITEM_"]',
-            'textarea[name="EFXP_DSC_ITE_01"]',
-            'textarea[name^="EFXP_DSC_ITE_"]',
-            '#rowDescripcion_01 textarea',
-          ],
-          descripcionItem
-        );
-
-        const persistedDescription = wroteDescription
-          ? await hasTextareaValue(
-              [
-                'textarea[name="EFXP_DSC_ITEM_01"]',
-                'textarea[name^="EFXP_DSC_ITEM_"]',
-                'textarea[name="EFXP_DSC_ITE_01"]',
-                'textarea[name^="EFXP_DSC_ITE_"]',
-                '#rowDescripcion_01 textarea',
-              ],
-              descripcionItem
-            )
-          : false;
-
-        if (!wroteDescription || !persistedDescription) {
+        await ensureChecked('input[name="DESCRIP_01"]');
+        const wroteDescription = await clearAndType('textarea[name="EFXP_DSC_ITEM_01"]', descripcionItem);
+        if (!wroteDescription) {
           throw new Error("No se encontró textarea de descripción");
-        }
+        } 
       } catch (descErr) {
-        try {
-          await page.click('td[data-title="Descrip"]');
-          await page.keyboard.down('Control');
-          await page.keyboard.press('A');
-          await page.keyboard.up('Control');
-          await page.keyboard.press('Backspace');
-          await page.keyboard.type(descripcionItem, { delay: 10 });
-        } catch {
-          console.warn(`⚠️ No se pudo completar descripción del producto: ${descErr.message}`);
-        }
+        console.warn(`⚠️ No se pudo completar descripción del producto: ${descErr.message}`);
       }
     }
 
@@ -507,8 +249,7 @@ export async function emitirDteConPuppeteer(dteJson) {
       await page.keyboard.press('Tab');
     }
 
-    await sleep(150);
-    await throwIfSiiErrors();
+    await sleep(100);
 
     // 6. FORMA DE PAGO
     await page.select('select[name="EFXP_FMA_PAGO"]', FORMA_PAGO);
@@ -596,4 +337,3 @@ export async function emitirDteConPuppeteer(dteJson) {
     }
   }
 }
-

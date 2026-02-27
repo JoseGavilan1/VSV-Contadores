@@ -48,10 +48,13 @@ const BULK_BACKEND_DEFAULTS = {
   ciudadEmisor: "Santiago",
 };
 
-const BULK_REQUEST_DELAY_MS = 3500;
+const BULK_REQUEST_DELAY_MS = 1000;
 
 const extractInvoiceNumber = (responseData = {}) => {
   const direct =
+    responseData?.numeroDocumento ??
+    responseData?.numero_documento ??
+    responseData?.nroDocumento ??
     responseData?.folio ??
     responseData?.numeroFactura ??
     responseData?.numero_folio ??
@@ -71,22 +74,12 @@ const extractInvoiceNumber = (responseData = {}) => {
   return "-";
 };
 
-const isMaxSiiSessionError = (message = "") => {
-  const text = String(message || "").toLowerCase();
-  return (
-    text.includes("maximo de sesiones autenticadas") ||
-    text.includes("máximo de sesiones autenticadas") ||
-    text.includes("01.01.139.500.709.27")
-  );
-};
-
-// Inicializar el estado del formulario con valores por defecto
 const createEmptyItem = () => ({
-  rutFacturar: "77493132-5", // Dejar vacio
+  rutFacturar: "", // Dejar vacio
   ciudadReceptor: "Santiago",
   name: "Operación Renta",
   cantidad: "1",
-  precio: "100", // Dejar vacio
+  precio: "", // Dejar vacio
   fecha: todayLocalISO(),
   metodo: "1",
   ciudadEmisor: "Santiago",
