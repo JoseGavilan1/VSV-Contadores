@@ -7,7 +7,7 @@ const pausa = (ms) => new Promise(res => setTimeout(res, ms));
 export async function iniciarNavegador() {
     return await puppeteer.launch({
         headless: false,
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        executablePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
         args: ['--start-maximized', '--no-sandbox', '--disable-setuid-sandbox'],
         defaultViewport: null
     });
