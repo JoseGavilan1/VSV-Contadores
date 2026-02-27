@@ -1,5 +1,5 @@
 import path from 'path';
-import { emitirDteService } from "../services/dteService.js";
+import { cerrarSesionDteService, emitirDteService } from "../services/dteService.js";
 
 function validarDteMinimo(dteJson) {
   if (!dteJson || typeof dteJson !== 'object' || Array.isArray(dteJson)) {
@@ -63,6 +63,18 @@ export async function emitirDteController(req, res) {
     return res.status(500).json({
       ok: false,
       error: err?.message ?? "Error interno",
+    });
+  }
+}
+
+export async function cerrarSesionDteController(_req, res) {
+  try {
+    const result = await cerrarSesionDteService();
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: err?.message ?? "No se pudo cerrar la sesión de DTE",
     });
   }
 }

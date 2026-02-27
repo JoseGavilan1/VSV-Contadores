@@ -74,6 +74,15 @@ const extractInvoiceNumber = (responseData = {}) => {
   return "-";
 };
 
+const isMaxSiiSessionError = (message = "") => {
+  const text = String(message || "").toLowerCase();
+  return (
+    text.includes("maximo de sesiones autenticadas") ||
+    text.includes("máximo de sesiones autenticadas") ||
+    text.includes("01.01.139.500.709.27")
+  );
+};
+
 const createEmptyItem = () => ({
   rutFacturar: "", // Dejar vacio
   ciudadReceptor: "Santiago",
@@ -442,6 +451,17 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     return data;
   };
 
+  const cerrarSesionMasiva = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/dte/cerrar-sesion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.warn("No se pudo cerrar la sesión al finalizar emisión masiva:", error?.message || error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate(item, true)) return;
@@ -635,6 +655,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
         });
       }
     } finally {
+      await cerrarSesionMasiva();
       setIsBulkSubmitting(false);
     }
   };
