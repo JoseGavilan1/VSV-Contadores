@@ -8,7 +8,7 @@ import { updateClienteApi } from '@/services/crmService';
 import CrmTableList from './crm/views/CrmTableList';
 import CrmAnalytics from './crm/modals/CrmAnalytics'; 
 import ClientDetailDrawer from './crm/modals/ClientDetailDrawer';
-
+ 
 // Limpiador de texto global
 const cleanStr = (str) => {
   if (!str) return '';
