@@ -4,13 +4,21 @@ import forge from "node-forge";
 import { SignedXml } from "xml-crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import 'dotenv/config'; // <-- Importación para leer el archivo .env
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ====== CONFIG ======
+// ====== CONFIGURACIÓN SEGURA ======
 const CERT_PATH = path.join(__dirname, "cert.p12.pfx");
-const CERT_PASS = "5229"; 
+const CERT_PASS = process.env.SII_PFX_PASS; // <-- Leemos directamente del .env
+
+// Validación de seguridad para evitar caídas silenciosas
+if (!CERT_PASS) {
+    console.error("❌ ERROR CRÍTICO: No se encontró la variable SII_PFX_PASS en el archivo .env");
+    process.exit(1);
+}
+
 const URL_SEED = "https://maullin.sii.cl/DTEWS/CrSeed.jws";
 const URL_TOKEN = "https://maullin.sii.cl/DTEWS/GetTokenFromSeed.jws";
 
@@ -54,7 +62,6 @@ function signSeed(seed) {
   
   sig.privateKey = privateKeyPem; 
 
-  // Agregamos el identificador tal cual lo espera la firma matemática
   sig.addReference({
     xpath: "//*[local-name()='getToken']",
     transforms: ["http://www.w3.org/2000/09/xmldsig#enveloped-signature"],
@@ -64,7 +71,6 @@ function signSeed(seed) {
   sig.signatureAlgorithm = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
   sig.canonicalizationAlgorithm = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
 
-  // Computamos la firma ignorando el keyInfoProvider de la librería que está fallando
   sig.computeSignature(xml, {
     location: { reference: "//*[local-name()='getToken']", action: "append" },
     prefix: '' 
@@ -72,12 +78,9 @@ function signSeed(seed) {
 
   let signedXml = sig.getSignedXml();
   
-  // --- INYECCIÓN MANUAL MAESTRA ---
-  // Incrustamos el certificado directamente dentro del nodo <Signature> a la fuerza
+  // --- INYECCIÓN MANUAL (El fix definitivo para el Estado 11) ---
   const keyInfoXml = `<KeyInfo><KeyValue><RSAKeyValue><Modulus>${modulus}</Modulus><Exponent>${exponent}</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>${certPem}</X509Certificate></X509Data></KeyInfo>`;
   signedXml = signedXml.replace("</Signature>", keyInfoXml + "</Signature>");
-  
-  // Minificamos el resultado para el SII
   signedXml = signedXml.replace(/>\s+</g, "><"); 
   
   return `<?xml version="1.0" encoding="UTF-8"?>\n${signedXml}`;
