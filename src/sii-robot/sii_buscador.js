@@ -4,7 +4,10 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 
-// Configuración de rutas (Rutas originales de tu entorno)
+// Importamos tu módulo especializado en leer PDFs
+import { extraerDatosFactura } from './leerpdf.js';
+
+// Configuración de rutas
 const rutaArchivoJSON = "C:\\Users\\felip\\OneDrive\\Documentos\\VS\\VSV-Contadores\\src\\sii-robot\\folios_pendientes.json";
 const carpetaDescargas = path.resolve('./pdf_descargados');
 
@@ -35,7 +38,7 @@ async function buscarDetalleEnSII(folioBuscado) {
 
     try {
         // ==========================================
-        // PASO 1: LOGIN
+        // PASO 1: LOGIN Y GESTIÓN DE POP-UPS
         // ==========================================
         console.log("🔑 Iniciando sesión...");
         await page.goto('https://misiir.sii.cl/cgi_misii/siihome.cgi', { waitUntil: 'networkidle2' });
@@ -52,7 +55,6 @@ async function buscarDetalleEnSII(folioBuscado) {
             page.waitForNavigation({ waitUntil: 'networkidle2' })
         ]);
 
-        // Manejo de sesiones previas y popups
         try {
             const btnSesion = await page.waitForSelector('input[value="Cerrar sesión anterior y continuar"]', { timeout: 3000 });
             if (btnSesion) {
@@ -72,7 +74,7 @@ async function buscarDetalleEnSII(folioBuscado) {
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'load' }),
             page.evaluate(() => {
-                const rutBuscado = '78306207'; // RUT de la empresa
+                const rutBuscado = '78306207';
                 const select = document.querySelector('select');
                 if (select) {
                     for (let i = 0; i < select.options.length; i++) {
@@ -89,8 +91,6 @@ async function buscarDetalleEnSII(folioBuscado) {
 
         await page.waitForSelector('table tbody tr');
 
-        const paginasAntes = await browser.pages();
-
         const clicExitoso = await page.evaluate((folio) => {
             const filas = document.querySelectorAll('table tbody tr');
             for (let fila of filas) {
@@ -105,116 +105,114 @@ async function buscarDetalleEnSII(folioBuscado) {
 
         if (!clicExitoso) throw new Error("Folio no encontrado en la tabla.");
 
-        let popupPage;
+        // ==========================================
+        // PASO 3: EXTRACCIÓN DEL CÓDIGO
+        // ==========================================
+        console.log("🔗 Buscando la redirección de la URL...");
+        
+        let codigoDocumento = null;
+        let urlDetalle = "";
+        let popupPage = null;
+
         for (let i = 0; i < 15; i++) {
             await new Promise(r => setTimeout(r, 1000));
             const paginasActuales = await browser.pages();
-            popupPage = paginasActuales.find(p => !paginasAntes.includes(p));
-            if (popupPage) break;
-        }
-
-        if (!popupPage) throw new Error("No se detectó la ventana de detalle.");
-        await popupPage.bringToFront();
-
-        // ==========================================
-// PASO 3: DESPLIEGUE FORZADO DE INFORMACIÓN
-// ==========================================
-console.log("🔽 Intentando expandir 'Otros detalles documento'...");
-
-// 1. Esperamos a que la página de detalles esté realmente lista
-await popupPage.waitForSelector('a[href="#collapseOtros"]', { visible: true, timeout: 10000 });
-
-const seDesplego = await popupPage.evaluate(async () => {
-    const btn = document.querySelector('a[href="#collapseOtros"]');
-    if (!btn) return false;
-
-    // Scroll para asegurar que el elemento esté en el "viewport"
-    btn.scrollIntoView({ behavior: 'instant', block: 'center' });
-
-    // SIMULACIÓN DE CLIC HUMANO COMPLETO
-    // Disparamos los 3 eventos que los scripts antiguos del SII suelen escuchar
-    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    btn.click(); // Clic final
-
-    return true;
-});
-
-if (seDesplego) {
-    console.log("✅ Clic enviado. Esperando respuesta del servidor...");
-    
-    // 2. Verificación de seguridad: si el SII se queda "pegado" y no abre la sección, 
-    // nosotros la obligamos a aparecer mediante CSS y clases de Bootstrap.
-    try {
-        await popupPage.waitForFunction(() => {
-            const panel = document.querySelector('#collapseOtros');
-            // Verificamos si ya tiene altura (está abierto) o si tiene la clase 'in'
-            return panel && (panel.offsetHeight > 0 || panel.classList.contains('in'));
-        }, { timeout: 4000 });
-        console.log("🔓 Sección expandida correctamente.");
-    } catch (e) {
-        console.warn("⚠️ El sitio no respondió al clic. Forzando apertura manual...");
-        await popupPage.evaluate(() => {
-            const panel = document.querySelector('#collapseOtros');
-            const chevron = document.querySelector('a[href="#collapseOtros"] i'); // La flechita
             
-            if (panel) {
-                // Inyectamos las clases que el SII usa para mostrar el contenido
-                panel.classList.add('in'); 
-                panel.style.display = 'block';
-                panel.style.height = 'auto';
-                panel.setAttribute('aria-expanded', 'true');
+            const paginaConCodigo = paginasActuales.find(p => p.url().includes('CODIGO='));
+            
+            if (paginaConCodigo) {
+                urlDetalle = paginaConCodigo.url();
+                const urlObj = new URL(urlDetalle);
+                codigoDocumento = urlObj.searchParams.get('CODIGO');
+                
+                if (codigoDocumento) {
+                    popupPage = paginaConCodigo; 
+                    await popupPage.bringToFront();
+                    break; 
+                }
             }
-            if (chevron) {
-                chevron.style.transform = 'rotate(180deg)'; // Giramos la flecha visualmente
-            }
-        });
-    }
-}
+        }
+
+        if (!codigoDocumento) {
+            const urlsAbiertas = (await browser.pages()).map(p => p.url());
+            console.log("❌ URLs detectadas actualmente:", urlsAbiertas);
+            throw new Error("El portal del SII nunca cargó la URL con el parámetro CODIGO.");
+        }
+
+        console.log(`🌐 URL capturada: ${urlDetalle}`);
+        console.log(`🎯 ¡Código extraído con éxito!: ${codigoDocumento}`);
 
         // ==========================================
-        // PASO 4: VER EL PDF
+        // PASO 4: DESCARGA INTERNA DEL PDF
         // ==========================================
-        console.log("📄 Buscando el botón de Visualización Documento...");
+        const urlPDF = `https://www1.sii.cl/cgi-bin/Portal001/mipeShowPdf.cgi?CODIGO=${codigoDocumento}`;
+        console.log(`🚀 Evadiendo interfaz... Descargando PDF silenciosamente.`);
+
+        const base64PDF = await popupPage.evaluate(async (url) => {
+            const res = await fetch(url);
+            const buffer = await res.arrayBuffer();
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }, urlPDF);
+
+        const pdfBuffer = Buffer.from(base64PDF, 'base64');
+        const rutaGuardado = path.join(carpetaDescargas, `Folio_${folioBuscado}.pdf`);
+        fs.writeFileSync(rutaGuardado, pdfBuffer);
+        console.log(`💾 PDF guardado temporalmente en: ${rutaGuardado}`);
+
+        // ==========================================
+        // PASO 5: EXTRACCIÓN DE DATOS Y ELIMINACIÓN DE PDF
+        // ==========================================
+        console.log("🕵️‍♂️ Analizando el texto del PDF desde el módulo externo...");
         
-        // Capturamos la promesa de la nueva pestaña antes del clic
-        const pdfTargetPromise = new Promise(x => browser.once('targetcreated', target => x(target.page())));
+        // Llamamos a nuestra función importada
+        const datosExtraidos = await extraerDatosFactura(rutaGuardado);
 
-        const clicPDF = await popupPage.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('a, button, input'));
-            const btnPdf = buttons.find(b => 
-                (b.innerText || b.value || "").toUpperCase().includes('VISUALIZACIÓN DOCUMENTO')
-            );
-
-            if (btnPdf) {
-                btnPdf.click();
-                return true;
+        // ==========================================
+        // PASO 6: ACTUALIZAR JSON (CRM)
+        // ==========================================
+        if (datosExtraidos) {
+            const datosJson = JSON.parse(fs.readFileSync(rutaArchivoJSON, 'utf8'));
+            const index = datosJson.findIndex(f => String(f.folio) === String(folioBuscado));
+            
+            if (index !== -1) {
+                datosJson[index].procesado = true;
+                datosJson[index].detalleCompleto = datosExtraidos;
+                fs.writeFileSync(rutaArchivoJSON, JSON.stringify(datosJson, null, 2));
+                console.log(`📝 Folio ${folioBuscado} actualizado exitosamente en el JSON.`);
             }
-            return false;
+        } else {
+            console.log(`⚠️ No se pudo extraer la información del folio ${folioBuscado}.`);
+        }
+
+        // ==========================================
+        // PASO 7: RETROCEDER Y CERRAR SESIÓN
+        // ==========================================
+        console.log("\n🚪 Cerrando pestaña del detalle...");
+        await popupPage.close(); 
+        await page.bringToFront(); 
+
+        console.log("🔐 Cerrando sesión en el SII de forma segura...");
+        await page.evaluate(() => {
+            const botones = Array.from(document.querySelectorAll('a, button'));
+            const btnCerrar = botones.find(el => el.innerText && el.innerText.toLowerCase().includes('cerrar sesi'));
+            
+            if (btnCerrar) {
+                btnCerrar.click();
+            } else {
+                window.location.href = 'https://misiir.sii.cl/cgi_misii/siihome.cgi?fin';
+            }
         });
 
-        if (clicPDF) {
-            const pdfPage = await pdfTargetPromise;
-            if (pdfPage) {
-                await pdfPage.bringToFront();
-                console.log("✅ PDF abierto en nueva pestaña.");
-                await new Promise(r => setTimeout(r, 8000)); // Tiempo para que lo veas
-            }
-        }
-
-        // ==========================================
-        // PASO 5: ACTUALIZAR ESTADO
-        // ==========================================
-        const datosJson = JSON.parse(fs.readFileSync(rutaArchivoJSON, 'utf8'));
-        const index = datosJson.findIndex(f => String(f.folio) === String(folioBuscado));
-        if (index !== -1) {
-            datosJson[index].procesado = true;
-            fs.writeFileSync(rutaArchivoJSON, JSON.stringify(datosJson, null, 2));
-            console.log(`📝 Folio ${folioBuscado} marcado como procesado.`);
-        }
+        await new Promise(r => setTimeout(r, 3000));
+        console.log("✅ Sesión cerrada correctamente.");
 
     } catch (error) {
-        console.error("❌ Error en el proceso:", error.message);
+        console.error("\n❌ Error en el proceso:", error.message);
     } finally {
         await browser.close();
         console.log("🛑 Robot apagado.");

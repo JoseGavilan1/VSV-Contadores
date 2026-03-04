@@ -1,0 +1,16 @@
+{
+  "numeroFactura": "76835",
+  "emisorNombre": "BPO ADVISORS SPA",
+  "emisorRut": "76.610.718-4",
+  "giro": "SERVICIO DE DIGITALIZACIÓN, VALIDACIÓN, FIRMA ELECTRÓNICA",
+  "direccion": "-PADRE MARIANO 103, OF 201",
+  "comuna": "PROVIDENCIA",
+  "ciudad": "SANTIAGO",
+  "receptorNombre": "VOLLAIRE & OLIVOS SIMPLE PYME LTDA",
+  "receptorRut": "78.306.207-0",
+  "fechaEmision": "27 de Febrero del 2026",
+  "descripcion": "INT1-FEA101 FIRMA ELECTRONICA AVANZADA - PACK PP -",
+  "montoNeto": 630,
+  "montoIva": 120,
+  "montoTotal": 750
+}
