@@ -1,0 +1,10 @@
+{
+    "compras": {
+        "resumen": [],
+        "detalles": {}
+    },
+    "ventas": {
+        "resumen": [],
+        "detalles": {}
+    }
+}

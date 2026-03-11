@@ -1,6 +1,6 @@
 // sii_database.mjs
 import crypto from 'crypto';
-import { pool } from '../db.js'; 
+import { pool } from '../../database/db.js'; 
 
 // --- 1. LÓGICA DE CIFRADO (Equivalente exacto al Python) ---
 // Extraemos la clave desde las variables de entorno, igual que en Python.

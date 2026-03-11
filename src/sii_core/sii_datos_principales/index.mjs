@@ -21,15 +21,17 @@ function imprimirResumen(datos) {
 async function main() {
     // Captura argumentos: node index.mjs 12345678-9 clave123
     const args = process.argv.slice(2);
-    const rutInput = args[0] || "77493132-5"; // Valor por defecto si no hay argumento
+    const rutInput = args[0] || "77493132-5"; 
     const claveInput = args[1] || "poli2021";
 
     const credenciales = { 
-        rutCompleto: rutInput.replace(/\./g, ''), // Limpia puntos si vienen en el input
+        rutCompleto: rutInput.replace(/\./g, ''), 
         clave: claveInput 
     };
 
+    // Declaramos browser y page a nivel global de la función
     let browser;
+    let page; 
 
     try {
         // --- PASO 1: VERIFICACIÓN EN SUPABASE ---
@@ -39,13 +41,13 @@ async function main() {
         if (empresaExistente) {
             console.log(`\n✅ LA EMPRESA YA EXISTE: "${empresaExistente.razon_social}".`);
             console.log(`[!] El proceso se detiene para evitar duplicados.\n`);
-            process.exit(0); // SE CIERRA AQUÍ
+            process.exit(0); 
         }
 
         // --- PASO 2: ENTRAR AL SII (SOLO SI NO EXISTE) ---
         console.log(`[+] Cliente nuevo detectado. Iniciando recorrido en el SII...`);
         browser = await iniciarNavegador();
-        const page = await browser.newPage();
+        page = await browser.newPage(); // Usamos la variable global
         await page.setViewport({ width: 1366, height: 768 });
 
         await loginSII(page, credenciales.rutCompleto, credenciales.clave);
@@ -63,8 +65,15 @@ async function main() {
     } catch (error) {
         console.error("\n❌ ERROR CRÍTICO EN EL PROCESO:", error.message);
     } finally {
+        // --- PASO 4: LIMPIEZA FINAL ---
+        // Cerramos la sesión en la página primero
+        if (page && !page.isClosed()) {
+            await cerrarSesion(page);
+        }
+
+        // Luego apagamos el navegador completamente
         if (browser) {
-            console.log("Cerrando navegador...");
+            console.log("🛑 Apagando el motor del navegador...");
             await browser.close();
         }
         process.exit(0);

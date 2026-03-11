@@ -80,4 +80,32 @@ export async function loginSII(page, rutCompleto, clave) {
             await pausa(3000);
         }
     }
+
+}
+
+export async function cerrarSesion(page) {
+    console.log(`\n🚪 Cerrando sesión de forma segura en el SII...`);
+    try {
+        if (page && !page.isClosed()) {
+            await page.bringToFront().catch(()=>{});
+            
+            // Buscamos el botón de cerrar sesión o forzamos la URL de salida
+            await page.evaluate(() => {
+                const botones = Array.from(document.querySelectorAll('a, button, span'));
+                const btnCerrar = botones.find(el => el.innerText && el.innerText.toLowerCase().includes('cerrar sesi'));
+                
+                if (btnCerrar) {
+                    btnCerrar.click();
+                } else {
+                    window.location.href = 'https://misiir.sii.cl/cgi_misii/siihome.cgi?fin';
+                }
+            });
+
+            // Pausa breve para asegurar que el servidor del SII reciba la orden de cierre
+            await new Promise(r => setTimeout(r, 3000));
+            console.log(`[+] Sesión cerrada correctamente en el servidor.`);
+        }
+    } catch (e) {
+        console.log(`[!] Aviso menor al intentar cerrar sesión:`, e.message);
+    }
 }
