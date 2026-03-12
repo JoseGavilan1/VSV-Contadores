@@ -393,3 +393,5 @@ export async function cerrarSesion(page) {
         await new Promise(r => setTimeout(r, 3000));
     } catch (e) {}
 }
+
+//funciona
