@@ -3,19 +3,19 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { iniciarSesion, prepararYConsultarRCV, escanearTodoElPortal, cerrarSesion } from './sii_navegador.js';
+import { iniciarSesion, prepararYConsultarRCV, escanearSoloVentas, cerrarSesion } from './sii_ventas.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function ejecutarRobotRCV() {
+async function ejecutarRobotVentas() {
     console.log("==================================================");
-    console.log("🚀 VSV CONTADORES - ESCÁNER MAESTRO (SOLO ENERO)");
+    console.log("🚀 VSV CONTADORES - ESCÁNER DE VENTAS (SOLO ENERO)");
     console.log("==================================================");
     
     const browser = await puppeteer.launch({ 
         headless: false, 
-        defaultViewport: null, // Pantalla sin recortes
+        defaultViewport: null, // 🛠️ ESTO EVITA QUE SE VEA CORTADO
         args: [
             '--start-maximized',
             '--window-size=1920,1080',
@@ -27,6 +27,7 @@ async function ejecutarRobotRCV() {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     
+    // 🛠️ Forzamos la resolución a Full HD
     await page.setViewport({ width: 1920, height: 1080 });
     page.setDefaultNavigationTimeout(90000); 
 
@@ -35,20 +36,19 @@ async function ejecutarRobotRCV() {
     try {
         await iniciarSesion(page);
         
-        // 🛑 LÍMITE DE PRUEBA: Solo ejecutamos el mes 1 (Enero)
+        // Solo ejecutamos el mes 1 (Enero) para prueba
         const meses = [1]; 
         
         for (const MES of meses) {
-            console.log(`\n📅 INICIANDO EXTRACCIÓN TOTAL PERIODO: ${MES}/2026`);
+            console.log(`\n📅 PROCESANDO VENTAS PERIODO: ${MES}/2026`);
             await prepararYConsultarRCV(page, 2026, MES);
             
-            // Función maestra que recorre Compras, Ventas y Descargas
-            const datosCompletos = await escanearTodoElPortal(page);
+            const datosVentas = await escanearSoloVentas(page);
 
-            const nombreArchivo = `RCV_Super_Extraccion_2026_${String(MES).padStart(2, '0')}.json`;
-            fs.writeFileSync(path.join(__dirname, nombreArchivo), JSON.stringify(datosCompletos, null, 4));
+            const nombreArchivo = `RCV_Ventas_Solo_2026_${String(MES).padStart(2, '0')}.json`;
+            fs.writeFileSync(path.join(__dirname, nombreArchivo), JSON.stringify(datosVentas, null, 4));
             
-            console.log(`💾 ¡Extracción del mes ${MES} guardada con éxito en ${nombreArchivo}!`);
+            console.log(`💾 Guardado con éxito: ${nombreArchivo}`);
             await new Promise(r => setTimeout(r, 2000));
         }
 
@@ -64,4 +64,4 @@ async function ejecutarRobotRCV() {
     }
 }
 
-ejecutarRobotRCV();
+ejecutarRobotVentas();

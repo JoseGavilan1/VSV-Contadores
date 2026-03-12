@@ -1,0 +1,142 @@
+{
+    "compras": {
+        "Registro": {
+            "resumen": [
+                {
+                    "Tipo Documento": "Factura Electrónica (33)",
+                    "Total Documentos": "7",
+                    "Monto Exento": "0",
+                    "Monto Neto": "123.941",
+                    "Monto IVA": "23.550",
+                    "Monto Total": "0"
+                }
+            ],
+            "detalles": {
+                "Factura Electrónica (33)": [
+                    {
+                        "RUT Emisor": "76830014-3",
+                        "Razón Social Emisor": "FLOW S A",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "482256",
+                        "Fecha Emisión": "31/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "VOLLAIRE &AMP; OLIVOS SIMPLE PYME LIMITADA",
+                        "IVA": "4.501",
+                        "Monto Total": "28.191",
+                        "Rut Firmante": "7980025-2",
+                        "Fecha Recepcion en SII": "30/01/2026",
+                        "Identificador de envio": "11662859512",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "76610718-4",
+                        "Razón Social Emisor": "BPO ADVISORS SPA",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "74200",
+                        "Fecha Emisión": "26/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "VOLLAIRE & OLIVOS SIMPLE PYME LIMITADA",
+                        "IVA": "120",
+                        "Monto Total": "750",
+                        "Rut Firmante": "10407742-0",
+                        "Fecha Recepcion en SII": "26/01/2026",
+                        "Identificador de envio": "11646181508",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "77631083-2",
+                        "Razón Social Emisor": "DELAQUEBRADA SPA",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "2372",
+                        "Fecha Emisión": "21/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                        "IVA": "1.900",
+                        "Monto Total": "11.900",
+                        "Rut Firmante": "10483349-7",
+                        "Fecha Recepcion en SII": "21/01/2026",
+                        "Identificador de envio": "11630613256",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "76473580-3",
+                        "Razón Social Emisor": "EKONO S.A.",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "36303851",
+                        "Fecha Emisión": "20/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "vollaire y olivos simple pyme",
+                        "IVA": "7.859",
+                        "Monto Total": "49.220",
+                        "Rut Firmante": "12461738-3",
+                        "Fecha Recepcion en SII": "20/01/2026",
+                        "Identificador de envio": "11628178654",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "76610718-4",
+                        "Razón Social Emisor": "BPO ADVISORS SPA",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "73311",
+                        "Fecha Emisión": "14/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "VOLLAIRE & OLIVOS SIMPLE PYME LIMITADA",
+                        "IVA": "120",
+                        "Monto Total": "750",
+                        "Rut Firmante": "10407742-0",
+                        "Fecha Recepcion en SII": "14/01/2026",
+                        "Identificador de envio": "11606957152",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "15714181-3",
+                        "Razón Social Emisor": "CRISTIAN ALEJANDRO ALVARADO DIAZ",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "217",
+                        "Fecha Emisión": "09/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                        "IVA": "8.930",
+                        "Monto Total": "55.930",
+                        "Rut Firmante": "15714181-3",
+                        "Fecha Recepcion en SII": "09/01/2026",
+                        "Identificador de envio": "11591440420",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    },
+                    {
+                        "RUT Emisor": "76610718-4",
+                        "Razón Social Emisor": "BPO ADVISORS SPA",
+                        "Tipo Documento": "Factura Electrónica",
+                        "Folio Documento": "72883",
+                        "Fecha Emisión": "07/01/2026",
+                        "Rut Receptor": "78306207-0",
+                        "Razón Social Receptor": "vollaire y olivos simple pyme ltda",
+                        "IVA": "120",
+                        "Monto Total": "750",
+                        "Rut Firmante": "10407742-0",
+                        "Fecha Recepcion en SII": "07/01/2026",
+                        "Identificador de envio": "11584855380",
+                        "Rut Emisor": "Razon Soc. Emisor",
+                        "Código": "Valor"
+                    }
+                ]
+            }
+        },
+        "Pendientes": {
+            "resumen": [],
+            "detalles": {}
+        },
+        "No Incluir": "Sin información",
+        "Reclamados": "Sin información"
+    },
+    "ventas": "Sin información",
+    "descargasDiferidas": {
+        "estadoGeneral": "Sin Consultas"
+    }
+}

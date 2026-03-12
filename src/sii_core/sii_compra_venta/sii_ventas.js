@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-// 🛡️ Destructor de Pop-ups intrusivos
+// Destructor de Pop-ups intrusivos
 async function matarPopups(page) {
     try {
         await page.evaluate(() => {
@@ -94,51 +94,66 @@ export async function prepararYConsultarRCV(page, anio, mes) {
     await new Promise(r => setTimeout(r, 5000));
 }
 
-// 🚀 EXTRACCIÓN MAESTRA SIN LÍMITES: Extrae todo el interior del modal para Compras y Ventas
+// 🚀 FUNCIÓN DE EXTRACCIÓN CUIDADOSA (LÍMITE DE 3 FOLIOS)
 async function extraerTablaDetalle(page) {
     let resultados = [];
     let hayMasPaginas = true;
     let numeroPagina = 1;
+    let foliosExtraidos = 0; 
 
-    while (hayMasPaginas) {
+    while (hayMasPaginas && foliosExtraidos < 3) {
         console.log(`         📑 Escaneando Página ${numeroPagina}...`);
+
         await new Promise(r => setTimeout(r, 1000));
 
-        // Contar solo las filas visibles que contengan un enlace puramente numérico (el Folio)
         const cantidadFolios = await page.evaluate(() => {
             const trsVisibles = Array.from(document.querySelectorAll('table tbody tr')).filter(tr => tr.offsetParent !== null);
-            return trsVisibles.filter(tr => Array.from(tr.querySelectorAll('a')).some(a => /^[\d.]+$/.test(a.innerText.trim()))).length;
+            return trsVisibles.length;
         });
 
         for (let i = 0; i < cantidadFolios; i++) {
-            // 1. Clic infalible (Francotirador de Folios)
+            if (foliosExtraidos >= 3) break; 
+
+            // 1. Clic infalible: Busca el enlace numérico y dispara evento real de mouse
             const folioClickeado = await page.evaluate((idx) => {
                 const trsVisibles = Array.from(document.querySelectorAll('table tbody tr')).filter(tr => tr.offsetParent !== null);
-                const filasConFolio = trsVisibles.filter(tr => Array.from(tr.querySelectorAll('a')).some(a => /^[\d.]+$/.test(a.innerText.trim())));
+                const fila = trsVisibles[idx];
                 
-                if (filasConFolio[idx]) {
-                    const links = Array.from(filasConFolio[idx].querySelectorAll('a'));
+                if (fila) {
+                    const links = Array.from(fila.querySelectorAll('a'));
+                    // Busca el enlace cuyo texto sea únicamente dígitos numéricos
                     const folioLink = links.find(a => /^[\d.]+$/.test(a.innerText.trim()));
                     
                     if (folioLink) {
+                        // Centrar el enlace en la pantalla
                         folioLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        folioLink.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
+                        
+                        // Simular clic humano para que Angular lo detecte
+                        folioLink.dispatchEvent(new MouseEvent('click', {
+                            view: window,
+                            bubbles: true,
+                            cancelable: true
+                        }));
                         return folioLink.innerText.trim();
                     }
                 }
                 return null;
             }, i);
 
-            if (!folioClickeado) continue; 
+            if (!folioClickeado) {
+                continue; // Si esta fila no tiene un enlace de folio, pasa a la siguiente
+            }
 
-            console.log(`            🔍 👉 Extrayendo Modal del Folio [${folioClickeado}] (${i+1}/${cantidadFolios})...`);
+            console.log(`            🔍 👉 Clic exacto en Folio [${folioClickeado}]. Esperando ventana...`);
 
             try {
-                // 2. Esperar modal y la inyección de datos del SII
+                // 2. Esperar el modal
                 await page.waitForSelector('.modal-content', { visible: true, timeout: 8000 });
+                
+                // 3. Esperar a que el SII inyecte la tabla interna
                 await new Promise(r => setTimeout(r, 2500)); 
                 
-                // 3. Extraer la tabla pura
+                // 4. Extraer
                 const datosDocumento = await page.evaluate(() => {
                     const modal = document.querySelector('.modal-content');
                     if (!modal) return {};
@@ -150,7 +165,9 @@ async function extraerTablaDetalle(page) {
                         if (tds.length >= 2) {
                             const clave = tds[0].replace(/:/g, '').trim();
                             const valor = tds[1].replace(/^:\s*/, '').trim();
-                            if (clave && clave !== "") info[clave] = valor;
+                            if (clave && clave !== "") {
+                                info[clave] = valor;
+                            }
                         }
                     });
 
@@ -169,16 +186,18 @@ async function extraerTablaDetalle(page) {
                 });
 
                 resultados.push(datosDocumento);
+                console.log(`               ✔️  ¡Datos extraídos con éxito!`);
+                foliosExtraidos++;
 
-                // 4. Cerrar modal
+                // 5. CERRAR PESTAÑA FLOTANTE
                 await page.evaluate(() => {
                     const btnClose = document.querySelector('.modal-header .close, button[ng-click="cerrar()"], .close');
                     if (btnClose) btnClose.click();
                 });
-                await new Promise(r => setTimeout(r, 800));
+                await new Promise(r => setTimeout(r, 1000));
 
             } catch (e) {
-                console.log(`            ⚠️ Omitiendo Folio [${folioClickeado}]: El SII no respondió a tiempo.`);
+                console.log(`            ⚠️ Omitiendo: Modal no cargó o SII se trabó.`);
                 await page.evaluate(() => {
                     const btnClose = document.querySelector('.modal-header .close, button[ng-click="cerrar()"], .close');
                     if (btnClose) btnClose.click();
@@ -187,7 +206,11 @@ async function extraerTablaDetalle(page) {
             }
         }
 
-        // 5. Paginación Infinita
+        if (foliosExtraidos >= 3) {
+            console.log(`         🛑 LÍMITE ALCANZADO: 3 folios extraídos de la tabla.`);
+            break; 
+        }
+
         hayMasPaginas = await page.evaluate(() => {
             const btnSig = Array.from(document.querySelectorAll('a, button')).find(el => el.innerText.includes('Página siguiente') && el.offsetParent !== null);
             if (btnSig && !btnSig.closest('li')?.classList.contains('disabled')) {
@@ -204,42 +227,26 @@ async function extraerTablaDetalle(page) {
         }
     }
     
-    console.log(`         ✅ Extracción completada para todos los folios de este documento.`);
     return resultados;
 }
 
-export async function escanearTodoElPortal(page) {
-    console.log("🔍 [3/4] Escaneando TODO EL PORTAL (Compras, Ventas y Descargas)...");
-    const dataFinal = { compras: {}, ventas: {}, descargasDiferidas: {} };
+export async function escanearSoloVentas(page) {
+    console.log("🔍 [3/4] Escaneando únicamente sección de VENTAS...");
+    const dataVentas = { resumen: [], detalles: {} };
 
-    // ==========================================
-    // 1. SECCIÓN COMPRAS
-    // ==========================================
-    console.log("\n🛒 --- SECCIÓN COMPRAS ---");
     await matarPopups(page);
+
+    console.log("   🖱️ Haciendo clic en la pestaña VENTA...");
     await page.evaluate(() => {
-        const tabCompra = Array.from(document.querySelectorAll('ul.nav li a')).find(a => a.innerText.trim().toUpperCase() === 'COMPRA');
-        if (tabCompra) tabCompra.click();
+        const tabs = Array.from(document.querySelectorAll('ul.nav li a'));
+        const tabVenta = tabs.find(a => a.innerText.trim().toUpperCase() === 'VENTA');
+        if (tabVenta) tabVenta.click();
     });
-    await new Promise(r => setTimeout(r, 4000));
+    await new Promise(r => setTimeout(r, 4500)); 
 
-    const subPestanasCompras = ['Registro', 'Pendientes', 'No Incluir', 'Reclamados'];
-    for (const sub of subPestanasCompras) {
-        console.log(`\n   📂 Revisando sub-pestaña Compras: ${sub}...`);
-        await page.evaluate(s => {
-            const subTab = Array.from(document.querySelectorAll('ul.nav-pills li a, a.ng-binding')).find(a => a.innerText.trim() === s);
-            if (subTab) subTab.click();
-        }, sub);
-        await new Promise(r => setTimeout(r, 4000));
+    const sinInfo = await page.evaluate(() => document.body.innerText.includes('Sin información') || document.body.innerText.includes('No hay información de Ventas'));
 
-        const sinInfo = await page.evaluate(s => document.body.innerText.includes(`No hay información de ${s}`) || document.body.innerText.includes('Sin información'), sub);
-
-        if (sinInfo) {
-            dataFinal.compras[sub] = "Sin información";
-            console.log(`      ❌ [${sub}]: Sin información.`);
-            continue;
-        }
-
+    if (!sinInfo) {
         const resumen = await page.evaluate(() => {
             return Array.from(document.querySelectorAll('table tbody tr')).map(tr => {
                 const tds = tr.querySelectorAll('td');
@@ -255,10 +262,10 @@ export async function escanearTodoElPortal(page) {
             }).filter(r => r && r["Tipo Documento"] !== "" && parseInt(r["Total Documentos"]) > 0);
         });
 
-        dataFinal.compras[sub] = { resumen, detalles: {} };
+        dataVentas.resumen = resumen;
 
         for (const item of resumen) {
-            console.log(`      📄 INICIANDO TIPO DE COMPRA: ${item["Tipo Documento"]} (${item["Total Documentos"]} docs)`);
+            console.log(`\n      📄 INICIANDO TIPO DE DOCUMENTO: ${item["Tipo Documento"]} (${item["Total Documentos"]} docs)`);
             await page.evaluate(t => {
                 const link = Array.from(document.querySelectorAll('td a')).find(a => a.innerText.includes(t));
                 if (link) link.click();
@@ -276,12 +283,12 @@ export async function escanearTodoElPortal(page) {
             });
 
             if (alertaModal) {
-                console.log(`         ⚠️ Alerta detectada. Omitiendo ${item["Tipo Documento"]}.`);
+                console.log(`         ⚠️ Alerta detectada. Omitiendo...`);
                 await new Promise(r => setTimeout(r, 1500));
                 continue;
             }
             
-            dataFinal.compras[sub].detalles[item["Tipo Documento"]] = await extraerTablaDetalle(page);
+            dataVentas.detalles[item["Tipo Documento"]] = await extraerTablaDetalle(page);
 
             await page.evaluate(() => {
                 const btnVolver = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Volver'));
@@ -289,97 +296,11 @@ export async function escanearTodoElPortal(page) {
             });
             await new Promise(r => setTimeout(r, 3000));
         }
-    }
-
-    // ==========================================
-    // 2. SECCIÓN VENTAS
-    // ==========================================
-    console.log("\n📈 --- SECCIÓN VENTAS ---");
-    await matarPopups(page);
-    await page.evaluate(() => {
-        const tabVenta = Array.from(document.querySelectorAll('ul.nav li a')).find(a => a.innerText.trim().toUpperCase() === 'VENTA');
-        if (tabVenta) tabVenta.click();
-    });
-    await new Promise(r => setTimeout(r, 4500)); 
-
-    const sinInfoVentas = await page.evaluate(() => document.body.innerText.includes('Sin información') || document.body.innerText.includes('No hay información'));
-
-    if (sinInfoVentas) {
-        dataFinal.ventas = "Sin información";
-        console.log(`   ❌ [VENTA]: Sin información.`);
     } else {
-        const resumenVentas = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('table tbody tr')).map(tr => {
-                const tds = tr.querySelectorAll('td');
-                if (tds.length < 2) return null;
-                return {
-                    "Tipo Documento": tds[0]?.innerText.trim(),
-                    "Total Documentos": tds[1]?.innerText.trim(),
-                    "Monto Exento": tds[2]?.innerText.trim(),
-                    "Monto Neto": tds[3]?.innerText.trim(),
-                    "Monto IVA": tds[4]?.innerText.trim() || "0",
-                    "Monto Total": tds[5]?.innerText.trim() || tds[tds.length-1]?.innerText.trim() || "0"
-                };
-            }).filter(r => r && r["Tipo Documento"] !== "" && parseInt(r["Total Documentos"]) > 0);
-        });
-
-        dataFinal.ventas = { resumen: resumenVentas, detalles: {} };
-
-        for (const item of resumenVentas) {
-            console.log(`      📄 INICIANDO TIPO DE VENTA: ${item["Tipo Documento"]} (${item["Total Documentos"]} docs)`);
-            await page.evaluate(t => {
-                const link = Array.from(document.querySelectorAll('td a')).find(a => a.innerText.includes(t));
-                if (link) link.click();
-            }, item["Tipo Documento"]);
-            await new Promise(r => setTimeout(r, 4000));
-
-            const alertaModal = await page.evaluate(() => {
-                const modal = document.querySelector('.modal-dialog, .modal-content');
-                if (modal && modal.innerText.includes('No se encontraron documentos para descargar')) {
-                    const btn = modal.querySelector('button.btn-danger, button.close, button');
-                    if (btn) btn.click();
-                    return true;
-                }
-                return false;
-            });
-
-            if (alertaModal) {
-                console.log(`         ⚠️ Alerta detectada. Omitiendo ${item["Tipo Documento"]}.`);
-                await new Promise(r => setTimeout(r, 1500));
-                continue;
-            }
-            
-            dataFinal.ventas.detalles[item["Tipo Documento"]] = await extraerTablaDetalle(page);
-
-            await page.evaluate(() => {
-                const btnVolver = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Volver'));
-                if (btnVolver) btnVolver.click();
-            });
-            await new Promise(r => setTimeout(r, 3000));
-        }
+        console.log(`   ❌ [VENTA]: Sin información.`);
     }
 
-    // ==========================================
-    // 3. DESCARGAS DIFERIDAS
-    // ==========================================
-    console.log("\n📥 --- SECCIÓN DESCARGAS DIFERIDAS ---");
-    await matarPopups(page);
-    await page.evaluate(() => {
-        const tab = Array.from(document.querySelectorAll('ul.nav li a')).find(a => a.innerText.includes('Descargas Diferidas'));
-        if (tab) tab.click();
-    });
-    await new Promise(r => setTimeout(r, 4000));
-
-    dataFinal.descargasDiferidas = await page.evaluate(() => {
-        let estado = "Revisado";
-        if (document.body.innerText.includes('Sin Consultas')) {
-            estado = "Sin Consultas";
-        }
-        return { estadoGeneral: estado };
-    });
-    console.log(`   ✔️ Estado Descargas: ${dataFinal.descargasDiferidas.estadoGeneral}`);
-
-    return dataFinal;
+    return { ventas: dataVentas };
 }
 
 export async function cerrarSesion(page) {
