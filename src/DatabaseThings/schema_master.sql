@@ -1,28 +1,46 @@
---
--- Esquema actual
--- Hash: Busqueda rapida (Gestión, etc)
--- Encriptación: Para desencriptar datos sensibles (RUT, email, etc)
---
+-- ===================================================================================
+-- ESQUEMA MAESTRO DEFINITIVO VSV CONTADORES (PostgreSQL / Supabase PRO)
+-- ===================================================================================
 
-/* Extensiones */
--- Hashes internos
+/* 1. EXTENSIONES */
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
--- Sirve para crear ID's seguras
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-/* Tipos ENUM */
--- Roles de usuario
+/* 2. TIPOS ENUM */
 CREATE TYPE rol_usuario AS ENUM ('Administrador', 'Consultor', 'Cliente');
--- Estado del servicio
 CREATE TYPE estado_servicio AS ENUM ('Activo', 'Pendiente', 'Suspendido');
--- Categorias disponibles
 CREATE TYPE categoria_servicio AS ENUM ('Tributaria', 'Contabilidad', 'RRHH', 'Soporte', 'Legal');
--- Frecuencia de servicios
 CREATE TYPE frecuencia_servicio AS ENUM ('Mensual', 'Trimestral', 'Semestral', 'Anual', 'Única vez');
 
---
-/* Cliente/Usuario */
---
+CREATE TYPE tipo_tramite_dt AS ENUM (
+    'LRE', 'F30', 'F30-1', 'Contrato de Trabajo', 'Anexo de Contrato', 
+    'Carta de Aviso', 'Finiquito', 'Comprobante Vacaciones', 'Pacto Horas Extra', 
+    'Pacto Teletrabajo', 'Reglamento Interno', 'Comité Paritario', 
+    'Inclusión Laboral', 'Registro Asistencia'
+);
+
+CREATE TYPE estado_tramite_dt AS ENUM (
+    'Pendiente', 'En Firma', 'Firmado', 'Cargado', 'Rechazado', 'Atrasado', 'No Aplica'
+);
+
+-- ==========================================
+-- 3. TABLAS DEL SISTEMA
+-- ==========================================
+
+CREATE TABLE usuario (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(255) NOT NULL,
+    rut_encrypted TEXT NOT NULL,
+    rut_hash VARCHAR(64) NOT NULL UNIQUE,
+    email_encrypted TEXT NOT NULL,
+    email_hash VARCHAR(64) NOT NULL UNIQUE,
+    clave VARCHAR(255) NOT NULL,
+    rol rol_usuario NOT NULL DEFAULT 'Cliente',
+    activo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.usuario ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,95 +49,73 @@ CREATE TABLE sessions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE usuario (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre VARCHAR(255) NOT NULL,
-
-    rut_encrypted TEXT NOT NULL,
-    rut_hash VARCHAR(64) NOT NULL UNIQUE,
-
-    email_encrypted TEXT NOT NULL,
-    email_hash VARCHAR(64) NOT NULL UNIQUE,
-
-    clave VARCHAR(255) NOT NULL,
-    rol rol_usuario NOT NULL DEFAULT 'Cliente',
-
-    -- Desactivar usuario --
-    activo BOOLEAN DEFAULT TRUE,
-
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
---
-/* EMPRESA */
---
-
-CREATE TABLE empresa (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    plan_id UUID REFERENCES plan(id),
-    tipo_cliente VARCHAR(20) DEFAULT 'Empresa' 
-        CHECK (tipo_cliente IN ('Empresa', 'Persona')),
-
-    razon_social VARCHAR(255) NOT NULL,
-
-    rut_encrypted TEXT NOT NULL,
-    rut_hash VARCHAR(64) NOT NULL UNIQUE,
-    
-    giro TEXT NOT NULL,
-    regimen_tributario VARCHAR(100) NOT NULL,
-    
-    -- CONTACTO
-    telefono_corporativo VARCHAR(50) NULL, 
-    email_corporativo VARCHAR(255) NULL,
-    
-    logo_url VARCHAR(255) NULL,
-    drive_url VARCHAR(255),
-
-    -- Representante legal
-    nombre_rep VARCHAR(255),
-    rut_rep_encrypted TEXT,
-    rut_rep_hash VARCHAR(64) UNIQUE,
-
-    -- ESTADOS DE CONTROL Y CRM
-    estado_pago VARCHAR(30) DEFAULT 'AL DIA' 
-        CHECK (estado_pago IN ('AL DIA', 'NO PAGADO', 'SERVICIO SUSPENDIDO')),
-    
-    estado_f29 VARCHAR(30) DEFAULT 'DECLARADO' 
-        CHECK (estado_f29 IN ('DECLARADO', 'PENDIENTE', 'NO DECLARAR')),
-
-    impuesto_pagar NUMERIC(15,2) DEFAULT 0,
-    dts_mensuales INTEGER DEFAULT 0,
-    score INTEGER DEFAULT 100 CHECK (score >= 0 AND score <= 100),
-    
-    -- Desactivar empresa --
-    activo BOOLEAN DEFAULT TRUE,
-    
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE plan (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre varchar(50) NOT NULL UNIQUE,
+    precio_base numeric DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE empresa (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan_id UUID REFERENCES plan(id) ON DELETE SET NULL,
+    tipo_cliente VARCHAR(20) DEFAULT 'Empresa' CHECK (tipo_cliente IN ('Empresa', 'Persona')),
+    razon_social VARCHAR(255) NOT NULL,
+    rut_encrypted TEXT NOT NULL,
+    rut_hash VARCHAR(64) NOT NULL UNIQUE,
+    giro TEXT NOT NULL,
+    regimen_tributario VARCHAR(100) NOT NULL,
+    telefono_corporativo VARCHAR(50) NULL, 
+    email_corporativo VARCHAR(255) NULL,
+    logo_url VARCHAR(255) NULL,
+    drive_url VARCHAR(255),
+    nombre_rep VARCHAR(255),
+    rut_rep_encrypted TEXT,
+    rut_rep_hash VARCHAR(64) UNIQUE,
+    estado_pago VARCHAR(30) DEFAULT 'AL DIA' CHECK (estado_pago IN ('AL DIA', 'NO PAGADO', 'SERVICIO SUSPENDIDO')),
+    estado_f29 VARCHAR(30) DEFAULT 'DECLARADO' CHECK (estado_f29 IN ('DECLARADO', 'PENDIENTE', 'NO DECLARAR')),
+    impuesto_pagar NUMERIC(15,2) DEFAULT 0,
+    dts_mensuales INTEGER DEFAULT 0,
+    score INTEGER DEFAULT 100 CHECK (score >= 0 AND score <= 100),
+    activo BOOLEAN DEFAULT TRUE,
+    
+    -- Campos del Excel
+    compras_mensuales NUMERIC(15,2) DEFAULT 0,
+    ventas_mensuales NUMERIC(15,2) DEFAULT 0,
+    facturacion_total NUMERIC(15,2) DEFAULT 0,
+    monto_bruto NUMERIC(15,2) DEFAULT 0,
+    nro_factura VARCHAR(50),
+    contrato_renta BOOLEAN DEFAULT FALSE,
+    estado_formulario_renta VARCHAR(100),
+    monto_renta NUMERIC(15,2) DEFAULT 0,
+    renta_marzo_neto NUMERIC(15,2) DEFAULT 0,
+    renta_marzo_bruto NUMERIC(15,2) DEFAULT 0,
+    fecha_pago DATE,
+    impuesto_unico NUMERIC(15,2) DEFAULT 0,
+    nota_urgente TEXT,
+    whatsapp VARCHAR(50),
+
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.empresa ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE empresa_credenciales (
     empresa_id UUID PRIMARY KEY REFERENCES empresa(id) ON DELETE CASCADE,
-    
     sii_rut_encrypted TEXT NOT NULL,
     sii_email_encrypted TEXT NOT NULL,
     sii_password_encrypted TEXT NOT NULL,
     web_password_encrypted text NOT NULL,
-    
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE sucursal (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     empresa_id UUID REFERENCES empresa(id) ON DELETE CASCADE,
-    
     direccion VARCHAR(255) NOT NULL,
     comuna VARCHAR(100) NOT NULL,
     ciudad VARCHAR(100) NOT NULL,
-    
     telefono_sucursal VARCHAR(50),
-
     es_casa_matriz BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -127,20 +123,12 @@ CREATE TABLE sucursal (
 
 CREATE TABLE bitacora_gestion (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Relaciones
     empresa_id UUID NOT NULL REFERENCES empresa(id) ON DELETE CASCADE,
     usuario_id UUID REFERENCES usuario(id) ON DELETE SET NULL,
-
     texto TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
 ALTER TABLE public.bitacora_gestion ENABLE ROW LEVEL SECURITY;
-
---
-/* Conexiones entre tablas */
---
 
 CREATE TABLE audita (
     usuario_id UUID REFERENCES usuario(id) ON DELETE CASCADE,
@@ -149,110 +137,77 @@ CREATE TABLE audita (
     PRIMARY KEY (usuario_id, empresa_id)
 );
 
---
-/* Servicios y planes */
---
-
--- Selección del plan (Go, Executive, Advance) 
--- Al crear una tabla independiente solo para el plan podemos escalar el programa lo que sea necesario
--- También si queremos borrar el plan seria tan facil como borrarlo sin afectar nada y sin tanto rodeo (ON CASCADE)
-CREATE TABLE plan (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre varchar(50) NOT NULL UNIQUE,
-    precio_base numeric DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Servicios generales (Balance anual, Finiquitos, F-30, etc.)
--- Categorias (Contabilidad, RRHH, Soporte, etc)
 CREATE TABLE servicio (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre varchar(255) NOT NULL,
-
-    -- Identificador único para el código (ej: "iva-mensual")
     slug varchar(100) UNIQUE NOT NULL,
-
-    -- Marca servicios que implican riesgo legal o financiero (multas) si no se cumplen.
     es_critico boolean DEFAULT false,
-    
     categoria categoria_servicio NOT NULL,
-
-    -- Descripción detallada del servicio
     descripcion text, 
-
-    -- Quita la necesidad de borrar servicios, solo los desactivamos
     activo boolean DEFAULT true,
-
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Aquí definimos qué servicios incluye cada plan junto a las configuraciones requeridas como
--- permitir que un servicio sea de forma mensual o anual, como es el caso de conciliación bancaria
--- que tiene Trimestral en Executive y Mensual en Advance
 CREATE TABLE plan_servicio_config (
-    -- Unir las 3 tablas
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_id uuid REFERENCES plan(id) ON DELETE CASCADE,
     servicio_id uuid REFERENCES servicio(id) ON DELETE CASCADE,
-    
-    -- Plan disponible para su compra
     disponible boolean DEFAULT true,
-    
-    -- Detalles como frecuencia (Mensual, Trimestral, etc).
     detalle_frecuencia frecuencia_servicio NOT NULL DEFAULT 'Mensual',
-    
-    -- Evitar asignar el mismo servicio dos veces al plan con distintas configuraciones
     UNIQUE(plan_id, servicio_id)
 );
- 
--- Asignacion independiente de servicio a empresa
+
 CREATE TABLE empresa_servicio (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     empresa_id uuid REFERENCES empresa(id) ON DELETE CASCADE, 
-    servicio_id uuid REFERENCES servicio(id) NOT NULL,
-    
-    -- Utilizado para saber el estado actual de un servicio en especifico
+    servicio_id uuid REFERENCES servicio(id) ON DELETE RESTRICT, 
     estado estado_servicio DEFAULT 'Pendiente',
-
-    -- Permite personalizar el cobro por cliente de ser necesario
     precio_pactado NUMERIC,
-    
-    -- Fecha de inicio del "contrato"
     fecha_inicio TIMESTAMP WITH TIME ZONE, 
-    
-    -- Fecha de termino del "contrato"
     fecha_termino TIMESTAMP WITH TIME ZONE, 
-    
-    -- Manejador de cambios
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historial de Cambios: Auditoria general
 CREATE TABLE empresa_servicio_historial (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    -- Servicio exacto al que le estamos haciendo el seguimiento
     empresa_servicio_id uuid REFERENCES empresa_servicio(id) ON DELETE CASCADE, 
-
-    -- Responsable del cambio
-    usuario_id uuid REFERENCES usuario(id),
-   
-    -- Ultimo estado asignado
+    usuario_id uuid REFERENCES usuario(id) ON DELETE SET NULL,
     estado_anterior estado_servicio,
-    
-    -- Estado actual del servicio
     estado_nuevo estado_servicio,
-    
-    -- Motivo del cambio
     motivo text,
-    
-    -- Cuando ocurrio
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-/* TRIGGERS */
+-- ==========================================
+-- 4. TABLAS DEL MÓDULO DT
+-- ==========================================
 
--- Actualiza el updated_at de empresas y usuarios --
+CREATE TABLE declaracion_dt (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id UUID NOT NULL REFERENCES empresa(id) ON DELETE CASCADE,
+    tipo tipo_tramite_dt NOT NULL,
+    estado estado_tramite_dt DEFAULT 'Pendiente',
+    periodo DATE NOT NULL,
+    fecha_vencimiento DATE NOT NULL,
+    fecha_carga TIMESTAMP WITH TIME ZONE,     
+    folio_comprobante VARCHAR(100),
+    url_comprobante TEXT,
+    observaciones TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.declaracion_dt ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE requisitos_dt_empresa (
+    empresa_id UUID REFERENCES empresa(id) ON DELETE CASCADE,
+    tipo tipo_tramite_dt NOT NULL,
+    PRIMARY KEY (empresa_id, tipo)
+);
+
+-- ==========================================
+-- 5. FUNCIONES Y TRIGGERS
+-- ==========================================
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -261,72 +216,65 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Manejo del ciclo de vida de un servicio: Si se activa,
--- se marca fecha de inicio. Si se suspende, se marca fecha de término.
 CREATE OR REPLACE FUNCTION fn_gestionar_ciclo_vida_servicio()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Si pasa a 'Activo' por primera vez, le damos la fecha de inicio automáticamente
     IF (NEW.estado = 'Activo' AND (OLD.estado IS NULL OR OLD.estado != 'Activo')) THEN
-        IF (NEW.fecha_inicio IS NULL) THEN
-            NEW.fecha_inicio = CURRENT_TIMESTAMP;
-        END IF;
+        IF (NEW.fecha_inicio IS NULL) THEN NEW.fecha_inicio = CURRENT_TIMESTAMP; END IF;
     END IF;
-
-    -- Si pasa a 'Suspendido', le ponemos la fecha de término automáticamente
     IF (NEW.estado = 'Suspendido' AND (OLD.estado IS NULL OR OLD.estado != 'Suspendido')) THEN
         NEW.fecha_termino = CURRENT_TIMESTAMP;
     ELSE
-        -- Si vuelve a activarse, limpiamos la fecha de término
-        IF (NEW.estado = 'Activo') THEN
-            NEW.fecha_termino = NULL;
-        END IF;
+        IF (NEW.estado = 'Activo') THEN NEW.fecha_termino = NULL; END IF;
     END IF;
-
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
 CREATE OR REPLACE FUNCTION public.calcular_score_empresa() 
 RETURNS TRIGGER AS $$
-DECLARE
-    nuevo_score INT := 100;
+DECLARE nuevo_score INT := 100;
 BEGIN
-    -- Regla 1: Si el servicio está suspendido, castigo severo (-70 pts)
-    IF NEW.estado_pago = 'SERVICIO SUSPENDIDO' THEN
-        nuevo_score := nuevo_score - 70;
-    -- Regla 2: Si no ha pagado, castigo medio (-40 pts)
-    ELSIF NEW.estado_pago = 'NO PAGADO' THEN
-        nuevo_score := nuevo_score - 40;
-    END IF;
-
-    -- Regla 3: Si el F29 está pendiente, restamos puntos por riesgo operativo (-20 pts)
-    IF NEW.estado_f29 = 'PENDIENTE' THEN
-        nuevo_score := nuevo_score - 20;
-    END IF;
-
-    -- Limitar los valores entre 0 y 100
+    IF NEW.estado_pago = 'SERVICIO SUSPENDIDO' THEN nuevo_score := nuevo_score - 70;
+    ELSIF NEW.estado_pago = 'NO PAGADO' THEN nuevo_score := nuevo_score - 40; END IF;
+    IF NEW.estado_f29 = 'PENDIENTE' THEN nuevo_score := nuevo_score - 20; END IF;
     IF nuevo_score < 0 THEN nuevo_score := 0; END IF;
     IF nuevo_score > 100 THEN nuevo_score := 100; END IF;
-
     NEW.score := nuevo_score;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION fn_prevenir_duplicados_dt()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.tipo IN ('LRE', 'F30', 'F30-1') THEN
+        IF EXISTS (SELECT 1 FROM declaracion_dt WHERE empresa_id = NEW.empresa_id AND tipo = NEW.tipo AND periodo = NEW.periodo AND id != NEW.id) THEN
+            RAISE EXCEPTION 'Ya existe un trámite de tipo % para este periodo en esta empresa.', NEW.tipo;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- TRIGGERS
 DROP TRIGGER IF EXISTS trigger_actualizar_score ON public.empresa;
-CREATE TRIGGER trigger_actualizar_score
-BEFORE INSERT OR UPDATE OF estado_pago, estado_f29 ON public.empresa
-FOR EACH ROW EXECUTE FUNCTION public.calcular_score_empresa();
+CREATE TRIGGER trigger_actualizar_score BEFORE INSERT OR UPDATE OF estado_pago, estado_f29 ON public.empresa FOR EACH ROW EXECUTE FUNCTION public.calcular_score_empresa();
 
-CREATE TRIGGER tr_update_usuario BEFORE UPDATE ON usuario FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-CREATE TRIGGER tr_update_empresa BEFORE UPDATE ON empresa FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-CREATE TRIGGER tr_update_creds BEFORE UPDATE ON empresa_credenciales FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-CREATE TRIGGER tr_update_sucursal BEFORE UPDATE ON sucursal FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-CREATE TRIGGER tr_update_empresa_servicio BEFORE UPDATE ON empresa_servicio FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_usuario BEFORE UPDATE ON usuario FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_empresa BEFORE UPDATE ON empresa FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_creds BEFORE UPDATE ON empresa_credenciales FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_sucursal BEFORE UPDATE ON sucursal FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_empresa_servicio BEFORE UPDATE ON empresa_servicio FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_update_declaracion_dt BEFORE UPDATE ON declaracion_dt FOR EACH ROW WHEN (OLD.* IS DISTINCT FROM NEW.*) EXECUTE PROCEDURE update_updated_at_column();
+
 CREATE TRIGGER tr_ciclo_vida_servicio BEFORE UPDATE ON empresa_servicio FOR EACH ROW EXECUTE PROCEDURE fn_gestionar_ciclo_vida_servicio();
+CREATE TRIGGER tr_prevenir_duplicados_dt BEFORE INSERT OR UPDATE ON declaracion_dt FOR EACH ROW EXECUTE PROCEDURE fn_prevenir_duplicados_dt();
 
-/* INDICES */
+-- ==========================================
+-- 6. ÍNDICES
+-- ==========================================
+
 CREATE INDEX idx_usuario_rut_hash ON usuario (rut_hash);
 CREATE INDEX idx_empresa_rut_hash ON empresa (rut_hash);
 CREATE INDEX idx_usuario_email_hash ON usuario (email_hash);
@@ -334,23 +282,17 @@ CREATE INDEX idx_empresa_razon_social ON empresa (razon_social ASC);
 CREATE INDEX idx_empresa_servicio_empresa_id ON empresa_servicio (empresa_id);
 CREATE INDEX idx_empresa_plan_id ON empresa (plan_id);
 CREATE INDEX idx_plan_servicio_config_plan_id ON plan_servicio_config (plan_id);
+CREATE INDEX idx_dt_empresa_periodo ON declaracion_dt (empresa_id, periodo DESC);
+CREATE INDEX idx_dt_estado ON declaracion_dt (estado);
 
+-- ==========================================
+-- 7. INSERCIONES BASE (MOCKS)
+-- ==========================================
 
-/* -----------------------------------------------------------------------------------*/
-
-/* Inserts */
-
--- Insertar los planes base del Búnker
 INSERT INTO plan (nombre, precio_base) VALUES 
-('GO', 30000),
-('EXECUTIVE', 50000),
-('ADVANCE', 100000),
-('FULL EMPRENDEDOR', 72000),
-('EMPRENDEDOR', 0),
-('TERMINO DE GIRO', 0),
-('FREE', 0),
-('OFV', 0),
-('DE BAJA', 0);
+('GO', 30000), ('EXECUTIVE', 50000), ('ADVANCE', 100000), 
+('FULL EMPRENDEDOR', 72000), ('EMPRENDEDOR', 0), ('TERMINO DE GIRO', 0), 
+('FREE', 0), ('OFV', 0), ('DE BAJA', 0) ON CONFLICT DO NOTHING;
 
 INSERT INTO servicio (nombre, slug, categoria, es_critico, descripcion) VALUES
 ('Declaración de Impuestos Mensual IVA', 'iva-mensual', 'Tributaria', true, 'Declaración de formulario F29 ante el SII.'),
@@ -369,24 +311,21 @@ INSERT INTO servicio (nombre, slug, categoria, es_critico, descripcion) VALUES
 ('Nómina PREVIRED', 'nomina-previred', 'RRHH', true, 'Declaración y pago de cotizaciones previsionales.'),
 ('Formulario F-30', 'formulario-f30', 'RRHH', false, 'Certificado de cumplimiento de obligaciones laborales.'),
 ('Finiquitos', 'finiquitos', 'RRHH', true, 'Cálculo y redacción de término de relación laboral.'),
-('Tramitación de Licencias Médicas', 'tramitacion-licencias', 'RRHH', false, 'Gestión de licencias ante FONASA/ISAPRE.');
+('Tramitación de Licencias Médicas', 'tramitacion-licencias', 'RRHH', false, 'Gestión de licencias ante FONASA/ISAPRE.') ON CONFLICT DO NOTHING;
 
 DO $$ 
 DECLARE 
     plan_go UUID := (SELECT id FROM plan WHERE nombre = 'GO');
     plan_exe UUID := (SELECT id FROM plan WHERE nombre = 'EXECUTIVE');
     plan_adv UUID := (SELECT id FROM plan WHERE nombre = 'ADVANCE');
-    plan_full UUID := (SELECT id FROM plan WHERE nombre = 'FULL EMPRENDEDOR');
 BEGIN
-    -- CONFIGURACIÓN PLAN GO
     INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
     (plan_go, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
     (plan_go, (SELECT id FROM servicio WHERE slug = 'gastos-factura'), 'Mensual'),
     (plan_go, (SELECT id FROM servicio WHERE slug = 'ventas-factura'), 'Mensual'),
     (plan_go, (SELECT id FROM servicio WHERE slug = 'balance-anual'), 'Anual'),
-    (plan_go, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual');
+    (plan_go, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual') ON CONFLICT DO NOTHING;
 
-    -- CONFIGURACIÓN PLAN EXECUTIVE
     INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
     (plan_exe, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
     (plan_exe, (SELECT id FROM servicio WHERE slug = 'conciliacion-bancaria'), 'Trimestral'),
@@ -404,47 +343,33 @@ BEGIN
     (plan_exe, (SELECT id FROM servicio WHERE slug = 'nomina-previred'), 'Mensual'),
     (plan_exe, (SELECT id FROM servicio WHERE slug = 'formulario-f30'), 'Mensual'),
     (plan_exe, (SELECT id FROM servicio WHERE slug = 'finiquitos'), 'Mensual'),
-    (plan_exe, (SELECT id FROM servicio WHERE slug = 'tramitacion-licencias'), 'Mensual');
-
-    -- CONFIGURACIÓN PLAN ADVANCE
-    INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'conciliacion-bancaria'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'clasificacion-cuentas'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'gastos-factura'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'ventas-factura'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'gastos-boleta'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'ventas-boleta'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'pre-balance'), 'Trimestral'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'balance-anual'), 'Anual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'soporte-email'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'cupos-rrhh'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'contratos-trabajo'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'liquidaciones-sueldo'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'nomina-previred'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'formulario-f30'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'finiquitos'), 'Mensual'),
-    (plan_adv, (SELECT id FROM servicio WHERE slug = 'tramitacion-licencias'), 'Mensual');
-
-    -- CONFIGURACIÓN PLAN FULL EMPRENDEDOR
-    INSERT INTO plan_servicio_config (plan_id, servicio_id, detalle_frecuencia) VALUES
-    -- Servicios de Inicio (Setup/Únicos)
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'redaccion-escritura'), 'Único'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'obtencion-giros'), 'Único'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'sistema-facturacion'), 'Único'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'cuenta-bancaria'), 'Único'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'firma-electronica'), 'Único'),
-    
-    -- Servicios Mensuales (Recurrentes)
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'iva-mensual'), 'Mensual'), -- Contabilidad + F29
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'libros-contables'), 'Mensual'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'reunion-contador'), 'Mensual'),
-    (plan_full, (SELECT id FROM servicio WHERE slug = 'pre-balance'), 'Mensual'); -- Balance y Pre-balance
+    (plan_exe, (SELECT id FROM servicio WHERE slug = 'tramitacion-licencias'), 'Mensual') ON CONFLICT DO NOTHING;
 END $$;
 
-/* ----------------------------------------------------------------------------------- */
+-- ==========================================
+-- 8. VISTAS DEL SISTEMA (FRONTEND)
+-- ==========================================
 
-/* Vistas */
+CREATE OR REPLACE VIEW vista_resumen_dt AS
+SELECT 
+    empresa_id,
+    COUNT(*) FILTER (WHERE date_trunc('month', periodo) = date_trunc('month', CURRENT_DATE)) as total_mes,
+    COUNT(*) FILTER (WHERE date_part('year', periodo) = date_part('year', CURRENT_DATE)) as total_anual,
+    COUNT(*) FILTER (WHERE (estado NOT IN ('Cargado', 'No Aplica') AND fecha_vencimiento < CURRENT_DATE) OR estado = 'Atrasado') as criticos_atrasados,
+    COUNT(*) FILTER (WHERE estado = 'En Firma') as pendientes_firma
+FROM declaracion_dt
+GROUP BY empresa_id;
+
+CREATE OR REPLACE VIEW vista_dt_faltantes AS
+SELECT 
+    r.empresa_id,
+    r.tipo as tramite_faltante,
+    'Debe generarse para el periodo actual' as alerta
+FROM requisitos_dt_empresa r
+LEFT JOIN declaracion_dt d ON r.empresa_id = d.empresa_id 
+    AND r.tipo = d.tipo 
+    AND date_trunc('month', d.periodo) = date_trunc('month', CURRENT_DATE)
+WHERE d.id IS NULL;
 
 CREATE OR REPLACE VIEW vista_clientes_crm AS
 SELECT 
@@ -456,6 +381,7 @@ SELECT
     p.precio_base AS "tramo",
     s.direccion, s.comuna, s.ciudad,
     e.telefono_corporativo AS "telefono",
+    COALESCE(e.whatsapp, e.telefono_corporativo) AS "whatsapp", 
     e.email_corporativo AS "correo",
     ec.web_password_encrypted AS "claveWeb",
     ec.sii_password_encrypted AS "claveSII",
@@ -465,15 +391,34 @@ SELECT
     e.rut_rep_encrypted AS "repRut",
     e.estado_pago AS "pagoServicio",
     e.tipo_cliente AS "type",
-    0 AS "neto", 
+    e.impuesto_pagar AS "neto", 
     e.dts_mensuales AS "dts",
     e.score,
     e.drive_url AS "drive",
+    
+    e.compras_mensuales AS "compras",
+    e.ventas_mensuales AS "ventas",
+    e.facturacion_total AS "facturacionTotal",
+    e.monto_bruto AS "bruto",
+    e.nro_factura AS "numeroFactura",
+    e.contrato_renta AS "contratoRenta",
+    e.estado_formulario_renta AS "formularioRenta",
+    e.monto_renta AS "renta",
+    e.renta_marzo_neto AS "rentaMarzoNeto",
+    e.renta_marzo_bruto AS "rentaMarzoBruto",
+    e.fecha_pago AS "fechaPago",
+    e.impuesto_unico AS "impuestoUnico",
+    e.nota_urgente AS "importante",
+
+    COALESCE(dt.criticos_atrasados, 0) AS "dtAtrasados",
+    COALESCE(dt.pendientes_firma, 0) AS "dtPendientesFirma",
+
     COALESCE(
-        (SELECT json_agg(json_build_object('id', b.id, 'fecha', to_char(b.created_at, 'DD/MM/YYYY'), 'texto', b.texto))
+        (SELECT json_agg(json_build_object('id', b.id, 'fecha', to_char(b.created_at, 'DD/MM/YYYY'), 'texto', b.texto) ORDER BY b.created_at DESC)
          FROM bitacora_gestion b WHERE b.empresa_id = e.id), '[]'::json
     ) AS "notas"
 FROM empresa e
 LEFT JOIN plan p ON e.plan_id = p.id
 LEFT JOIN sucursal s ON e.id = s.empresa_id AND s.es_casa_matriz = true
-LEFT JOIN empresa_credenciales ec ON e.id = ec.empresa_id;
+LEFT JOIN empresa_credenciales ec ON e.id = ec.empresa_id
+LEFT JOIN vista_resumen_dt dt ON e.id = dt.empresa_id;

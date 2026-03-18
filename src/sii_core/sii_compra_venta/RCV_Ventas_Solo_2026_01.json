@@ -1,0 +1,76 @@
+{
+    "ventas": {
+        "resumen": [
+            {
+                "Tipo Documento": "Factura Electrónica (33)",
+                "Total Documentos": "106",
+                "Monto Exento": "0",
+                "Monto Neto": "5.858.812",
+                "Monto IVA": "1.113.176",
+                "Monto Total": "6.971.988"
+            },
+            {
+                "Tipo Documento": "Nota de Crédito Electrónica (61)",
+                "Total Documentos": "3",
+                "Monto Exento": "0",
+                "Monto Neto": "70.000",
+                "Monto IVA": "13.300",
+                "Monto Total": "83.300"
+            }
+        ],
+        "detalles": {
+            "Factura Electrónica (33)": [
+                {
+                    "RUT Emisor": "78306207-0",
+                    "Razón Social Emisor": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                    "Tipo Documento": "Factura Electrónica",
+                    "Folio Documento": "383",
+                    "Fecha Emisión": "31/01/2026",
+                    "Rut Receptor": "77937684-2",
+                    "Razón Social Receptor": "VISIÓN 400 SPA",
+                    "IVA": "5.700",
+                    "Monto Total": "35.700",
+                    "Rut Firmante": "11030124-3",
+                    "Fecha Recepcion en SII": "30/01/2026",
+                    "Identificador de envio": "11664049892",
+                    "Rut Emisor": "Razon Soc. Emisor",
+                    "Código": "Valor"
+                },
+                {
+                    "RUT Emisor": "78306207-0",
+                    "Razón Social Emisor": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                    "Tipo Documento": "Factura Electrónica",
+                    "Folio Documento": "396",
+                    "Fecha Emisión": "31/01/2026",
+                    "Rut Receptor": "77087108-5",
+                    "Razón Social Receptor": "AGUSTO LE GLACE SPA",
+                    "IVA": "5.700",
+                    "Monto Total": "35.700",
+                    "Rut Firmante": "11030124-3",
+                    "Fecha Recepcion en SII": "30/01/2026",
+                    "Identificador de envio": "11664284736",
+                    "Rut Emisor": "Razon Soc. Emisor",
+                    "Código": "Valor"
+                },
+                {
+                    "RUT Emisor": "78306207-0",
+                    "Razón Social Emisor": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                    "Tipo Documento": "Factura Electrónica",
+                    "Folio Documento": "380",
+                    "Fecha Emisión": "31/01/2026",
+                    "Rut Receptor": "77849617-8",
+                    "Razón Social Receptor": "EMPRESA S&J SPA",
+                    "IVA": "9.500",
+                    "Monto Total": "59.500",
+                    "Rut Firmante": "11030124-3",
+                    "Fecha Recepcion en SII": "30/01/2026",
+                    "Identificador de envio": "11663993670",
+                    "Rut Emisor": "Razon Soc. Emisor",
+                    "78306207-0": "VOLLAIRE Y OLIVOS SIMPLE PYME LIMITADA",
+                    "Código": "Valor"
+                }
+            ],
+            "Nota de Crédito Electrónica (61)": []
+        }
+    }
+}

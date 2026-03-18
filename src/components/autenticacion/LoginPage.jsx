@@ -19,8 +19,8 @@ import { Link, useNavigate } from 'react-router-dom';
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: 'carlos@gmail.com',
-    clave: '12345678'
+    email: 'admin@vsv.cl',
+    clave: 'admin123'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
