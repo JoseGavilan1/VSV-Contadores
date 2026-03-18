@@ -17,8 +17,22 @@ const CrmAnalytics = ({ cashFlow, services, compliance, risk }) => {
   const safeCompliance = useMemo(() => compliance?.map(d => ({ ...d, name: cleanStr(d.name) })) || [], [compliance]);
   const safeRisk = useMemo(() => risk?.map(d => ({ ...d, name: cleanStr(d.name) })) || [], [risk]);
 
-  // Formateador para los cuadros de información (Tooltips)
-  const customTooltipFormatter = (value, name) => [value, cleanStr(name)];
+  // Formateador inteligente para los cuadros de información (Tooltips)
+  const customTooltipFormatter = (value, name) => {
+    const cleanName = cleanStr(name);
+    
+    // Si la etiqueta tiene "M$", "Facturado" o "Monto", lo pasamos a moneda
+    if (cleanName.includes('M$') || cleanName.includes('FACTURADO') || cleanName.includes('RECAUDADO') || cleanName.includes('MONTO')) {
+       return [`$${Number(value).toLocaleString('es-CL')}`, cleanName];
+    }
+    // Si es porcentaje
+    if (cleanName.includes('%') || cleanName.includes('PORCENTAJE')) {
+       return [`${value}%`, cleanName];
+    }
+    
+    // Para DTs u otros números planos
+    return [value, cleanName];
+  };
 
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 animate-in fade-in duration-500">

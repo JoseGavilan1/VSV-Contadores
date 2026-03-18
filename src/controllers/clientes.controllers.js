@@ -11,14 +11,12 @@ const decryptData = (encryptedValue) => {
         const decrypted = decrypt(encryptedValue);
         return decrypted || encryptedValue;
     } catch (error) {
-        // Si no se puede desencriptar, devolvemos el valor original (por si no está encriptado)
         return encryptedValue;
     }
 };
 
 export const getClientesCRM = async (req, res) => {
     try {
-        // 1. Obtener empresas con todas sus columnas (e.*) para traer los nuevos campos de finanzas
         const clientesResult = await pool.query(`
             SELECT 
                 e.*,
@@ -37,7 +35,6 @@ export const getClientesCRM = async (req, res) => {
             ORDER BY e.razon_social ASC
         `);
 
-        // 2. Obtener servicios contratados
         const serviciosResult = await pool.query(`
             SELECT 
                 es.id,
@@ -51,7 +48,6 @@ export const getClientesCRM = async (req, res) => {
             ORDER BY es.empresa_id
         `);
 
-        // 3. Obtener bitácora de gestión
         const notasResult = await pool.query(`
             SELECT
                 id,
@@ -62,7 +58,6 @@ export const getClientesCRM = async (req, res) => {
             ORDER BY created_at DESC
         `);
 
-        // 4. Mapear servicios por empresa_id
         const serviciosPorEmpresa = {};
         serviciosResult.rows.forEach(srv => {
             if (!serviciosPorEmpresa[srv.empresa_id]) {
@@ -77,7 +72,6 @@ export const getClientesCRM = async (req, res) => {
             });
         });
 
-        // 5. Mapear notas por empresa_id (CORREGIDO: Se agregó .rows)
         const notasPorEmpresa = {};
         notasResult.rows.forEach(nota => {
             if (!notasPorEmpresa[nota.empresa_id]) {
@@ -90,7 +84,6 @@ export const getClientesCRM = async (req, res) => {
             });
         });
 
-        // 6. Procesar y limpiar clientes para el Frontend
         const clients = clientesResult.rows.map((cliente) => ({
             id: cliente.id,
             razonSocial: cliente.razon_social,
@@ -106,11 +99,9 @@ export const getClientesCRM = async (req, res) => {
             logo: cliente.logo_url,
             plan: cliente.plan_nombre || 'FREE',
             
-            // Estados
             pagoServicio: cliente.estado_pago || 'AL DIA',
             estadoFormulario: cliente.estado_f29 || 'PENDIENTE',
             
-            // Finanzas: Conversión estricta para asegurar que React reciba números reales
             impuestoPagar: parseFloat(cliente.impuesto_pagar) || 0,
             neto: parseFloat(cliente.impuesto_pagar) || 0,
             bruto: parseFloat(cliente.monto_bruto) || 0,
@@ -122,23 +113,19 @@ export const getClientesCRM = async (req, res) => {
             nro_factura: cliente.nro_factura || '',
             impuestoUnico: parseFloat(cliente.impuesto_unico) || 0,
             
-            // Renta
             montoRenta: parseFloat(cliente.monto_renta) || 0,
             contratoRenta: cliente.contrato_renta || false,
             formularioRenta: cliente.estado_formulario_renta || '',
             rentaMarzoNeto: parseFloat(cliente.renta_marzo_neto) || 0,
             rentaMarzoBruto: parseFloat(cliente.renta_marzo_bruto) || 0,
             
-            // Dirección del Trabajo
             dts: parseInt(cliente.dts_mensuales) || 0,
             dtAtrasados: parseInt(cliente.dts_mensuales) || 0,
             dtPendientesFirma: parseInt(cliente.pendientes_firma) || 0,
             
-            // Credenciales: CLAVE del Excel -> web_password_encrypted
             claveWeb: decryptData(cliente.web_password_encrypted),
             claveSII: decryptData(cliente.sii_password_encrypted),
             
-            // Otros
             score: parseInt(cliente.score) || 50,
             direccion: cliente.direccion || '',
             comuna: cliente.comuna || '',
@@ -173,7 +160,9 @@ export const updateClienteCRM = async (req, res) => {
             telefono, correo, plan, pagoServicio, estadoFormulario,
             score, direccion, comuna, ciudad, bruto, neto,
             ventas, compras, impuestoUnico, numeroFactura,
-            montoRenta, contratoRenta, formularioRenta, whatsapp, importante
+            montoRenta, contratoRenta, formularioRenta, whatsapp, importante,
+            // AQUÍ ESTÁN LAS NUEVAS VARIABLES:
+            rentaMarzoNeto, rentaMarzoBruto, claveWeb, claveSII 
         } = req.body;
 
         const rutEncrypted = rut ? encrypt(rut) : null;
@@ -216,8 +205,10 @@ export const updateClienteCRM = async (req, res) => {
                 estado_formulario_renta = COALESCE($21, estado_formulario_renta),
                 whatsapp = COALESCE($22, whatsapp),
                 nota_urgente = COALESCE($23, nota_urgente),
+                renta_marzo_neto = COALESCE($24, renta_marzo_neto),
+                renta_marzo_bruto = COALESCE($25, renta_marzo_bruto),
                 updated_at = NOW()
-            WHERE id = $24
+            WHERE id = $26
             RETURNING *
         `;
 
@@ -230,6 +221,7 @@ export const updateClienteCRM = async (req, res) => {
             parseNum(montoRenta),
             contratoRenta !== undefined ? (contratoRenta === 'SÍ' || contratoRenta === true) : null,
             formularioRenta || null, whatsapp || null, importante || null,
+            parseNum(rentaMarzoNeto), parseNum(rentaMarzoBruto),
             empresaId
         ]);
 
@@ -244,6 +236,32 @@ export const updateClienteCRM = async (req, res) => {
                     updated_at = NOW()
                 WHERE empresa_id = $4 AND es_casa_matriz = TRUE
             `, [direccion || null, comuna || null, ciudad || null, empresaId]);
+        }
+
+        // GUARDAR CONTRASEÑAS EN SU TABLA CORRESPONDIENTE
+        if (claveWeb !== undefined || claveSII !== undefined) {
+            const credUpdates = [];
+            const credVals = [];
+            let paramIndex = 1;
+            
+            if (claveWeb !== undefined) {
+                credUpdates.push(`web_password_encrypted = $${paramIndex++}`);
+                credVals.push(claveWeb ? encrypt(claveWeb) : null);
+            }
+            if (claveSII !== undefined) {
+                credUpdates.push(`sii_password_encrypted = $${paramIndex++}`);
+                credVals.push(claveSII ? encrypt(claveSII) : null);
+            }
+            
+            if (credUpdates.length > 0) {
+                credUpdates.push(`updated_at = NOW()`);
+                credVals.push(empresaId);
+                await pool.query(`
+                    UPDATE empresa_credenciales 
+                    SET ${credUpdates.join(', ')} 
+                    WHERE empresa_id = $${paramIndex}
+                `, credVals);
+            }
         }
 
         return res.json({ success: true, message: 'Datos de empresa actualizados correctamente.' });
