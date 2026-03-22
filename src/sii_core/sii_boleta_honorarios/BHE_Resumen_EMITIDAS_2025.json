@@ -1,0 +1,167 @@
+[
+    {
+        "periodo": "Contribuyente:\tDIDIANNE GRACE VOLLAIRE AGUILERA\nRUT:\t11030124-3\n \nINFORME CORRESPONDIENTE AL AÑO 2025\n \n\nPERIODOS\n\t\nFOLIOS\n\t\nEMISIONES\n\t\n(*)HONORARIO BRUTO\n\t\n(*)RETENCION DE TERCEROS\n\t\n(*)RETENCION CONTRIBUYENTE\n\t\n(*)TOTAL LIQUIDO\n\n\nInicial\n\t\nFinal\n\t\nVigentes\n\t\nAnuladas\n\nENERO\t \t \t \t \t \t \t \t0 \nFEBRERO\t \t \t \t \t \t \t \t0 \nMARZO\t \t \t \t \t \t \t \t0 \nABRIL\t \t \t \t \t \t \t \t0 \nMAYO\t \t \t \t \t \t \t \t0 \nJUNIO\t \t \t \t \t \t \t \t0 \nJULIO\t \t \t \t \t \t \t \t0 \nAGOSTO\t \t \t \t \t \t \t \t0 \nSEPTIEMBRE\t \t \t \t \t \t \t \t0 \nOCTUBRE\t \t \t \t \t \t \t \t0 \nNOVIEMBRE\t \t \t \t \t \t \t \t0 \nDICIEMBRE\t \t \t \t \t \t \t \t0 \nTotales:\t \t \t0 \t0 \t0 \t0 \t0 \t0 \n(*) Los valores totales no consideran los montos de las boletas anuladas.\n\t\n\t\n\n \n\nPara ver el detalle de las boletas de un mes, hacer click sobre el mes que desea revisar",
+        "foliosInicial": "Contribuyente:",
+        "foliosFinal": "DIDIANNE GRACE VOLLAIRE AGUILERA",
+        "emisionesVigentes": "RUT:",
+        "emisionesAnuladas": "11030124-3",
+        "honorarioBruto": "0",
+        "retencionTerceros": "INFORME CORRESPONDIENTE AL AÑO 2025",
+        "retencionContribuyente": "0",
+        "totalLiquido": "PERIODOS\n\t\nFOLIOS\n\t\nEMISIONES\n\t\n(*)HONORARIO BRUTO\n\t\n(*)RETENCION DE TERCEROS\n\t\n(*)RETENCION CONTRIBUYENTE\n\t\n(*)TOTAL LIQUIDO\n\n\nInicial\n\t\nFinal\n\t\nVigentes\n\t\nAnuladas\n\nENERO\t \t \t \t \t \t \t \t0 \nFEBRERO\t \t \t \t \t \t \t \t0 \nMARZO\t \t \t \t \t \t \t \t0 \nABRIL\t \t \t \t \t \t \t \t0 \nMAYO\t \t \t \t \t \t \t \t0 \nJUNIO\t \t \t \t \t \t \t \t0 \nJULIO\t \t \t \t \t \t \t \t0 \nAGOSTO\t \t \t \t \t \t \t \t0 \nSEPTIEMBRE\t \t \t \t \t \t \t \t0 \nOCTUBRE\t \t \t \t \t \t \t \t0 \nNOVIEMBRE\t \t \t \t \t \t \t \t0 \nDICIEMBRE\t \t \t \t \t \t \t \t0 \nTotales:\t \t \t0 \t0 \t0 \t0 \t0 \t0 \n(*) Los valores totales no consideran los montos de las boletas anuladas."
+    },
+    {
+        "periodo": "PERIODOS\n\t\nFOLIOS\n\t\nEMISIONES\n\t\n(*)HONORARIO BRUTO\n\t\n(*)RETENCION DE TERCEROS\n\t\n(*)RETENCION CONTRIBUYENTE\n\t\n(*)TOTAL LIQUIDO\n\n\nInicial\n\t\nFinal\n\t\nVigentes\n\t\nAnuladas\n\nENERO\t \t \t \t \t \t \t \t0 \nFEBRERO\t \t \t \t \t \t \t \t0 \nMARZO\t \t \t \t \t \t \t \t0 \nABRIL\t \t \t \t \t \t \t \t0 \nMAYO\t \t \t \t \t \t \t \t0 \nJUNIO\t \t \t \t \t \t \t \t0 \nJULIO\t \t \t \t \t \t \t \t0 \nAGOSTO\t \t \t \t \t \t \t \t0 \nSEPTIEMBRE\t \t \t \t \t \t \t \t0 \nOCTUBRE\t \t \t \t \t \t \t \t0 \nNOVIEMBRE\t \t \t \t \t \t \t \t0 \nDICIEMBRE\t \t \t \t \t \t \t \t0 \nTotales:\t \t \t0 \t0 \t0 \t0 \t0 \t0 \n(*) Los valores totales no consideran los montos de las boletas anuladas.",
+        "foliosInicial": "PERIODOS",
+        "foliosFinal": "FOLIOS",
+        "emisionesVigentes": "EMISIONES",
+        "emisionesAnuladas": "(*)HONORARIO BRUTO",
+        "honorarioBruto": "(*)RETENCION DE TERCEROS",
+        "retencionTerceros": "(*)RETENCION CONTRIBUYENTE",
+        "retencionContribuyente": "(*)TOTAL LIQUIDO",
+        "totalLiquido": "Inicial"
+    },
+    {
+        "periodo": "ENERO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "FEBRERO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "MARZO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "ABRIL",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "MAYO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "JUNIO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "JULIO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "AGOSTO",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "SEPTIEMBRE",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "OCTUBRE",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "NOVIEMBRE",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "DICIEMBRE",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    },
+    {
+        "periodo": "Totales:",
+        "foliosInicial": "",
+        "foliosFinal": "",
+        "emisionesVigentes": "0",
+        "emisionesAnuladas": "0",
+        "honorarioBruto": "0",
+        "retencionTerceros": "0",
+        "retencionContribuyente": "0",
+        "totalLiquido": "0"
+    }
+]
