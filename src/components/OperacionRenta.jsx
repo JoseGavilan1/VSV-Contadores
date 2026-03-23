@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
-import OperacionRentaDashboard from '@/components/operacion-renta/OperacionRentaDashboard';
+import OperacionRentaDashboard from '@/components/operacion-renta/OperacionRentaDashBoard';
 import AnalisisOperaciones from '@/components/operacion-renta/AnalisisOperaciones';
 import CalculoImpuestos from '@/components/operacion-renta/CalculoImpuestos';
 import AnalisisSocios from '@/components/operacion-renta/AnalisisSocios';
