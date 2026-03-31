@@ -10,7 +10,8 @@
     "server": "node ./src/server.js",
     "excel:import": "node ./AgregarDatosExcel/agregarDatos.mjs",
     "excel:extract": "node ./AgregarDatosExcel/agregarDatos.mjs",
-    "excel:insert": "node ./AgregarDatosExcel/insertarEmpresas.mjs"
+    "excel:insert": "node ./AgregarDatosExcel/insertarEmpresas.mjs",
+    "start:all": "concurrently \"npm run server\" \"npm run dev\""
   },
   "dependencies": {
     "@babel/generator": "^7.26.3",
@@ -41,7 +42,7 @@
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "csv-parse": "^6.1.0",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "faker": "^6.6.6",
@@ -54,7 +55,7 @@
     "pdf-parse": "^1.1.4",
     "pdfjs-dist": "^5.5.207",
     "pg": "^8.16.3",
-    "puppeteer": "^24.37.5",
+    "puppeteer": "^24.40.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^18.2.0",
@@ -80,6 +81,7 @@
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
     "eslint": "^8.57.1",
     "eslint-config-react-app": "^7.0.1",
     "postcss": "^8.4.31",
