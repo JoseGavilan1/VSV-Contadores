@@ -8,7 +8,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-// Solo importamos apiLimiter, el CORS lo definiremos directamente abajo
 import { apiLimiter } from './config/security.js';
 
 import fs, { mkdir } from 'node:fs';
@@ -38,24 +37,29 @@ const PORT = process.env.PORT || 4000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- Middlewares Globales ---
-app.use(helmet()); 
-app.use(compression()); 
-app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-
 // ==========================================
-// CONFIGURACIÓN CORS (PERMITE VERCEL Y LOCALHOST)
+// 1. CORS DEBE IR ANTES QUE TODO (¡Mágico para el Preflight!)
 // ==========================================
-app.use(cors({
+const corsConfig = {
     origin: [
         'http://localhost:3000', 
-        'https://vsv-contadores.vercel.app' // Tu página web real
+        'https://vsv-contadores.vercel.app'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-company-id']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-company-id', 'Accept', 'Origin']
+};
+
+app.use(cors(corsConfig));
+app.options('*', cors(corsConfig)); // Responde al preflight de Chrome
+
+// ==========================================
+// 2. Middlewares Globales
+// ==========================================
+app.use(helmet({ crossOriginResourcePolicy: false })); 
+app.use(compression()); 
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' }));
 
 // --- Ruta de Health Check ---
 app.get('/health', async (req, res) => {
