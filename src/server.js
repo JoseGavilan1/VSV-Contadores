@@ -37,45 +37,32 @@ const PORT = process.env.PORT || 4000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 🚨 ESTO ES CLAVE EN RENDER: Le dice a tu apiLimiter que no bloquee las peticiones
+app.set('trust proxy', 1);
+
 // ==========================================
-// 1. CORS DEBE IR ANTES QUE TODO (¡Mágico para el Preflight!)
+// 1. CORS "MODO DIOS" (Acepta TODO)
 // ==========================================
 const corsConfig = {
-    origin: [
-        'http://localhost:3000', 
-        'https://vsv-contadores.vercel.app'
-    ],
+    origin: function (origin, callback) {
+        callback(null, true); // Deja pasar absolutamente a todos
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-company-id', 'Accept', 'Origin']
 };
 
 app.use(cors(corsConfig));
-app.options('*', cors(corsConfig)); // Responde al preflight de Chrome
+app.options('*', cors(corsConfig));
 
 // ==========================================
 // 2. Middlewares Globales
 // ==========================================
-app.use(helmet({ crossOriginResourcePolicy: false })); 
+// Apagamos la política estricta de casco para que Vercel pueda entrar
+app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false })); 
 app.use(compression()); 
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
-
-// --- Ruta de Health Check ---
-app.get('/health', async (req, res) => {
-  try {
-    const dbStatus = await pool.query('SELECT 1');
-    res.status(200).json({ 
-      status: 'OK', 
-      database: 'CONNECTED', 
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error('❌ Error en Health Check:', err.message);
-    res.status(503).json({ status: 'ERROR', database: 'DISCONNECTED' });
-  }
-});
 
 // --- Rutas de la API ---
 app.use('/api/auth', apiLimiter, authRoutes);
