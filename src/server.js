@@ -65,20 +65,20 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 
 // --- Rutas de la API ---
-app.use('/api/auth', apiLimiter, authRoutes);
-app.use('/api/users', apiLimiter, userRoutes);
-app.use('/api/companies', apiLimiter, companyRoutes);
+// --- Rutas de la API ---
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/companies', companyRoutes);
 
-app.use('/api/dashboard', apiLimiter, dashboardRoutes);
-app.use('/api/clientes', apiLimiter, clientesRoutes);
-app.use('/api/accounting', apiLimiter, accountingRoutes);
-app.use('/api/rrhh', apiLimiter, rrhhRoutes);
-app.use('/api/renta', apiLimiter, rentaRoutes);
-app.use('/api/bancos', apiLimiter, bancoRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/accounting', accountingRoutes);
+app.use('/api/rrhh', rrhhRoutes);
+app.use('/api/renta', rentaRoutes);
+app.use('/api/bancos', bancoRoutes);
 
-app.use('/api/dte', apiLimiter, dteRoutes);
-
-app.use("/api/dte-consulta", apiLimiter, dteConsultaRoutes);
+app.use('/api/dte', dteRoutes);
+app.use("/api/dte-consulta", dteConsultaRoutes);
 
 // --- Archivos Estáticos ---
 app.use('/static', express.static(path.join(process.cwd(), 'tmp')));
