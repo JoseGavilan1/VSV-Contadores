@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "../../apiClient.js";
+import { fetchWithAuth } from './apiClient.js';
 import { API_BASE_URL } from "../../config.js";
 
 export async function enviarDteABackend(dteJson, sessionId) {

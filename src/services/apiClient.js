@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../config.js';
-import { mapperToCamel } from '@/lib/mappers';
+import { mapperToCamel } from '../lib/mappers.js';
 
 export const fetchWithAuth = async (endpoint, sessionId, options = {}, empresaId = null) => {
     

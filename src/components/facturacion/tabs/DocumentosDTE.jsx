@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { Search, Download, FileWarning, Loader2, RotateCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import { API_BASE_URL, RUT_EMPRESA_LOCAL, IVA_RATE } from "../../../config.js";
+import { API_BASE_URL, RUT_EMPRESA_LOCAL, IVA_RATE } from "../../../../config.js";
 import { useAuth } from '@/hooks/useAuth.jsx';
 
 const mesesBase = [

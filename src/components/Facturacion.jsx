@@ -8,8 +8,8 @@ import { useSii } from '@/contexts/SiiContext.jsx';
 import { useAuth } from '@/hooks/useAuth.jsx'; // Faltaba esto
 
 import SIILoginModal from '@/components/facturacion/modals/SIILoginModal';
-import EmisionDTE from '@/components/facturacion/EmisionDTE';
-import DocumentosDTE from '@/components/facturacion/DocumentosDTE';
+import EmisionDTE from './facturacion/tabs/EmisionDTE';
+import DocumentosDTE from './facturacion/tabs/DocumentosDTE';
 // import ReportesSII from '@/components/facturacion/ReportesSII';
 
 import FacturaElectronicaModal from '@/components/facturacion/modals/dte/FacturaElectronicaModal';
