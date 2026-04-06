@@ -8,7 +8,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import { apiLimiter } from './config/security.js';
+import { corsOptions, apiLimiter } from './config/security.js';
 
 import fs, { mkdir } from 'node:fs';
 
@@ -37,53 +37,49 @@ const PORT = process.env.PORT || 4000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 🚨 ESTO ES CLAVE EN RENDER: Le dice a tu apiLimiter que no bloquee las peticiones
-app.set('trust proxy', 1);
-
-// ==========================================
-// 1. CORS "MODO DIOS" (Acepta TODO)
-// ==========================================
-const corsConfig = {
-    origin: function (origin, callback) {
-        callback(null, true); // Deja pasar absolutamente a todos
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-company-id', 'Accept', 'Origin']
-};
-
-app.use(cors(corsConfig));
-app.options('*', cors(corsConfig));
-
-// ==========================================
-// 2. Middlewares Globales
-// ==========================================
-// Apagamos la política estricta de casco para que Vercel pueda entrar
-app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false })); 
+// --- Middlewares Globales ---
+app.use(helmet()); 
 app.use(compression()); 
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
+app.use(cors(corsOptions));
+
+// --- Ruta de Health Check ---
+app.get('/health', async (req, res) => {
+  try {
+    const dbStatus = await pool.query('SELECT 1');
+    res.status(200).json({ 
+      status: 'OK', 
+      database: 'CONNECTED', 
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('❌ Error en Health Check:', err.message);
+    res.status(503).json({ status: 'ERROR', database: 'DISCONNECTED' });
+  }
+});
 
 // --- Rutas de la API ---
-// --- Rutas de la API ---
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/companies', companyRoutes);
+app.use('/api/auth', apiLimiter, authRoutes);
+app.use('/api/users', apiLimiter, userRoutes);
+app.use('/api/companies', apiLimiter, companyRoutes);
 
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/accounting', accountingRoutes);
-app.use('/api/rrhh', rrhhRoutes);
-app.use('/api/renta', rentaRoutes);
-app.use('/api/bancos', bancoRoutes);
+app.use('/api/dashboard', apiLimiter, dashboardRoutes);
+app.use('/api/clientes', apiLimiter, clientesRoutes);
+app.use('/api/accounting', apiLimiter, accountingRoutes);
+app.use('/api/rrhh', apiLimiter, rrhhRoutes);
+app.use('/api/renta', apiLimiter, rentaRoutes);
+app.use('/api/bancos', apiLimiter, bancoRoutes);
 
-app.use('/api/dte', dteRoutes);
-app.use("/api/dte-consulta", dteConsultaRoutes);
+app.use('/api/dte', apiLimiter, dteRoutes);
+
+app.use("/api/dte-consulta", apiLimiter, dteConsultaRoutes);
 
 // --- Archivos Estáticos ---
 app.use('/static', express.static(path.join(process.cwd(), 'tmp')));
 
-// --- Eliminación de Archivos Temporales ---
+// --- Eliminación de Archivos Temporales ---W
 const cleanTmpFolder = () => {
   const folderPath = path.join(process.cwd(), 'tmp');
 
@@ -108,6 +104,7 @@ const cleanTmpFolder = () => {
 };
 
 setInterval(cleanTmpFolder, 30 * 60 * 1000); // Cada 30 minutos
+
 
 // --- Manejo de Errores Global ---
 app.use((err, req, res, next) => {
