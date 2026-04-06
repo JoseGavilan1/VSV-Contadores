@@ -56,8 +56,14 @@ export async function emitirLotePuppeteer(facturasFront) {
     console.log(`\n[INFO] Iniciando para ${pendientes.length} empresas (Escritura Humana Lenta)...`);
 
     const browser = await puppeteer.launch({ 
-        headless: false, defaultViewport: null, 
-        args: ['--start-maximized', '--disable-blink-features=AutomationControlled'] 
+        headless: true, // DEBE SER TRUE EN LA NUBE
+        defaultViewport: null, 
+        args: [
+            '--no-sandbox', // OBLIGATORIO EN SERVIDORES LINUX/RENDER
+            '--disable-setuid-sandbox', // OBLIGATORIO EN RENDER
+            '--start-maximized', 
+            '--disable-blink-features=AutomationControlled'
+        ] 
     });
 
     const page = (await browser.pages())[0];

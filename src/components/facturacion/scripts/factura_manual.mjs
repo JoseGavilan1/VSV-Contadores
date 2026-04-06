@@ -24,8 +24,14 @@ async function navegarAEmision(page) {
 // 🚀 Exportamos la función para que el servidor (Express) pueda usarla
 export async function emitirFacturaPuppeteer(datos) {
     const browser = await puppeteer.launch({ 
-        headless: true, // true para que se ejecute invisible en el servidor
-        args: ['--start-maximized', '--ignore-certificate-errors'] 
+        headless: true, // DEBE SER TRUE EN LA NUBE
+        defaultViewport: null, 
+        args: [
+            '--no-sandbox', // OBLIGATORIO EN SERVIDORES LINUX/RENDER
+            '--disable-setuid-sandbox', // OBLIGATORIO EN RENDER
+            '--start-maximized', 
+            '--disable-blink-features=AutomationControlled'
+        ] 
     });
 
     const page = await browser.newPage();
