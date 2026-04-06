@@ -8,7 +8,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import { corsOptions, apiLimiter } from './config/security.js';
+// Solo importamos apiLimiter, el CORS lo definiremos directamente abajo
+import { apiLimiter } from './config/security.js';
 
 import fs, { mkdir } from 'node:fs';
 
@@ -42,7 +43,19 @@ app.use(helmet());
 app.use(compression()); 
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
-app.use(cors(corsOptions));
+
+// ==========================================
+// CONFIGURACIÓN CORS (PERMITE VERCEL Y LOCALHOST)
+// ==========================================
+app.use(cors({
+    origin: [
+        'http://localhost:3000', 
+        'https://vsv-contadores.vercel.app' // Tu página web real
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-company-id']
+}));
 
 // --- Ruta de Health Check ---
 app.get('/health', async (req, res) => {
@@ -79,7 +92,7 @@ app.use("/api/dte-consulta", apiLimiter, dteConsultaRoutes);
 // --- Archivos Estáticos ---
 app.use('/static', express.static(path.join(process.cwd(), 'tmp')));
 
-// --- Eliminación de Archivos Temporales ---W
+// --- Eliminación de Archivos Temporales ---
 const cleanTmpFolder = () => {
   const folderPath = path.join(process.cwd(), 'tmp');
 
@@ -104,7 +117,6 @@ const cleanTmpFolder = () => {
 };
 
 setInterval(cleanTmpFolder, 30 * 60 * 1000); // Cada 30 minutos
-
 
 // --- Manejo de Errores Global ---
 app.use((err, req, res, next) => {
