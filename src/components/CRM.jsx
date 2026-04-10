@@ -27,23 +27,67 @@ const CRM = () => {
   const [clients, setClients] = useState([]);
 
   // =========================================
-  // CONSUMIMOS EL ESTADO DE LA EMPRESA ACTIVA DESDE EL CONTEXTO GLOBAL
+  // CONSUMIMOS EL ESTADO DE LA EMPRESA ACTIVA
   // =========================================
   const { selectedCompany, setSelectedCompany } = useAuth();
+  
+  // Estado local para forzar la actualización visual al instante
+  const [localActiveCompany, setLocalActiveCompany] = useState(null); // Iniciamos en null por seguridad
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [selectorSearch, setSelectorSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos'); 
+  const [typeFilter, setTypeFilter] = useState('Todos');
+  const [selectedClient, setSelectedClient] = useState(null);
 
-  // Validamos estrictamente si hay una empresa seleccionada con un nombre real escuchando a selectedCompany
-  const activeCompanyName = selectedCompany ? (selectedCompany.razon_social || selectedCompany.razonSocial) : '';
+  // =========================================
+  // REGLA ESTRICTA: SIEMPRE INICIAR VACÍO
+  // =========================================
+  useEffect(() => {
+    // Al iniciar sesión y montar el CRM, borramos la memoria caché
+    // para que SIEMPRE aparezca "SELECCIONAR EMPRESA..."
+    if (setSelectedCompany) setSelectedCompany(null);
+    setLocalActiveCompany(null);
+    setSelectedClient(null);
+  }, []); // Array vacío = se ejecuta solo 1 vez al cargar la página
+
+  // Mantiene sincronizado el estado por si cambia desde el Panel Lateral (Drawer)
+  useEffect(() => {
+    if (selectedCompany && Object.keys(selectedCompany).length > 0) {
+        setLocalActiveCompany(selectedCompany);
+    } else {
+        setLocalActiveCompany(null);
+    }
+  }, [selectedCompany]);
 
   useEffect(() => {
     if (dbClients) setClients(dbClients);
   }, [dbClients]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Todos'); 
-  const [typeFilter, setTypeFilter] = useState('Todos');
-  const [selectedClient, setSelectedClient] = useState(null);
+  // =========================================
+  // SINCRONIZADOR MAESTRO (La Magia del botón de abajo)
+  // =========================================
+  useEffect(() => {
+      const handleGlobalClick = (e) => {
+          const btn = e.target.closest('button');
+          // Ignoramos si el clic fue en el botón de arriba
+          if (!btn || btn.id === 'top-selector-btn') return;
+          
+          const text = btn.textContent?.toUpperCase() || '';
+          if (text.includes('SELECCIONAR EMPRESA') || text.includes('SELECCIONADA')) {
+              // Si hicimos clic en el botón del Drawer, forzamos la actualización visual de arriba
+              if (selectedClient) {
+                  if (setSelectedCompany) setSelectedCompany(selectedClient);
+                  setLocalActiveCompany(selectedClient); // Actualización instantánea
+              }
+          }
+      };
+      window.addEventListener('click', handleGlobalClick);
+      return () => window.removeEventListener('click', handleGlobalClick);
+  }, [selectedClient, setSelectedCompany]);
+
+  // Validamos estrictamente qué nombre mostrar arriba
+  const activeCompanyName = localActiveCompany?.razon_social || localActiveCompany?.razonSocial || null;
 
   // STATS INTELIGENTES
   const stats = useMemo(() => {
@@ -131,19 +175,22 @@ const CRM = () => {
                 <div className="fixed inset-0 z-40" onClick={() => setIsSelectorOpen(false)} />
             )}
 
+            {/* ========================================================= */}
             {/* BOTÓN REAL "SELECCIONAR EMPRESA" (EL DE ARRIBA BLINDADO) */}
+            {/* ========================================================= */}
             <div className="relative group z-50">
                 <button 
+                    id="top-selector-btn"
                     onClick={() => setIsSelectorOpen(!isSelectorOpen)}
-                    className={`relative flex items-center justify-between gap-2 bg-[#0f172a]/90 backdrop-blur-xl border text-white text-sm font-bold px-4 py-2.5 rounded-xl w-64 md:w-[300px] shadow-lg hover:bg-[#1e293b] transition-all ${isSelectorOpen ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/10'}`}
+                    className={`relative flex items-center justify-between gap-2 bg-[#0f172a]/90 backdrop-blur-xl border text-sm font-bold px-4 py-2.5 rounded-xl w-64 md:w-[320px] shadow-lg hover:bg-[#1e293b] transition-all ${isSelectorOpen ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/10'} ${activeCompanyName ? 'text-white' : 'text-gray-400'}`}
                 >
                     <div className="flex items-center gap-2 truncate">
-                        <Building2 size={16} className={activeCompanyName ? "text-emerald-400 shrink-0" : "text-blue-400 shrink-0"} />
+                        <Building2 size={16} className={activeCompanyName ? "text-emerald-400 shrink-0" : "text-gray-500 shrink-0"} />
                         <span className="truncate tracking-tight">
-                            {activeCompanyName ? activeCompanyName : 'SELECCIONAR EMPRESA'}
+                            {activeCompanyName ? activeCompanyName : 'SELECCIONAR EMPRESA...'}
                         </span>
                     </div>
-                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${isSelectorOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={16} className={`text-gray-500 shrink-0 transition-transform ${isSelectorOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* MENÚ DESPLEGABLE GLOBAL */}
@@ -154,7 +201,7 @@ const CRM = () => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.98 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute top-[calc(100%+8px)] right-0 w-[300px] md:w-[380px] bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                            className="absolute top-[calc(100%+8px)] right-0 w-[320px] md:w-[400px] bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                         >
                             {/* Buscador */}
                             <div className="p-3 border-b border-white/5 bg-[#1e293b]/50">
@@ -163,7 +210,7 @@ const CRM = () => {
                                     <input 
                                         type="text" 
                                         autoFocus
-                                        placeholder="Buscar empresa..." 
+                                        placeholder="Buscar empresa por nombre o RUT..." 
                                         value={selectorSearch}
                                         onChange={(e) => setSelectorSearch(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-gray-500"
@@ -173,34 +220,41 @@ const CRM = () => {
 
                             {/* Lista de Empresas */}
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                
+                                {/* EL BOTÓN DE LIMPIAR / SELECCIONAR EMPRESA DEFAULT */}
                                 <button 
                                     onClick={() => {
                                         if (setSelectedCompany) setSelectedCompany(null);
+                                        setLocalActiveCompany(null);
+                                        setSelectedClient(null); // Limpiamos también el panel lateral
                                         setIsSelectorOpen(false);
                                         setSelectorSearch('');
                                         toast({ title: "Modo Global", description: "Se ha desmarcado la empresa activa." });
                                     }}
                                     className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 ${!activeCompanyName ? 'bg-blue-600/10 text-blue-400 border-l-2 border-blue-500' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`}
                                 >
-                                    <LayoutList size={14} /> DESMARCAR EMPRESA
+                                    <LayoutList size={14} /> SELECCIONAR EMPRESA
                                 </button>
 
                                 {clients
                                     .filter(c => cleanStr(c.razon_social || c.razonSocial).includes(cleanStr(selectorSearch)) || cleanStr(c.rut_encrypted || c.rut).includes(cleanStr(selectorSearch)))
                                     .sort((a, b) => (a.razon_social || a.razonSocial || '').localeCompare(b.razon_social || b.razonSocial || ''))
                                     .map(c => {
-                                        const isThisSelected = selectedCompany?.id === c.id;
+                                        const isThisSelected = localActiveCompany?.id === c.id;
                                         return (
                                             <button 
                                                 key={c.id}
                                                 onClick={() => {
-                                                    // AQUÍ ESTÁ EL CAMBIO PRINCIPAL:
-                                                    // Solo seleccionamos el cliente para abrir el Drawer.
-                                                    // Dejamos que el botón de *adentro del Drawer* haga el setSelectedCompany()
+                                                    // ACTUALIZACIÓN INMEDIATA:
+                                                    // Al hacer clic, selecciona globalmente la empresa,
+                                                    // actualiza el botón de arriba y abre el Drawer.
+                                                    if (setSelectedCompany) setSelectedCompany(c);
+                                                    setLocalActiveCompany(c);
                                                     setSelectedClient(c);
                                                     setActiveTab('list');
                                                     setIsSelectorOpen(false);
                                                     setSelectorSearch('');
+                                                    toast({ title: "Empresa Seleccionada", description: `Has activado a ${c.razon_social || c.razonSocial}` });
                                                 }}
                                                 className={`w-full flex flex-col items-start px-5 py-3 transition-all border-t border-white/5 ${isThisSelected ? 'bg-blue-600/10 border-l-2 border-l-blue-500' : 'hover:bg-white/5 border-l-2 border-l-transparent hover:pl-6'}`}
                                             >
@@ -224,7 +278,7 @@ const CRM = () => {
                     )}
                 </AnimatePresence>
             </div>
-            {/* FIN DEL BOTON ARRIBA */}
+            {/* ========================================================= */}
 
             <div className="flex bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-xl p-1 relative z-10">
                 <button onClick={() => setActiveTab('list')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
