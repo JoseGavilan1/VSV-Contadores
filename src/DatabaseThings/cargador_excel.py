@@ -1,5 +1,5 @@
 """
-Script de Carga Directa (Bypass de Excel) - Restauración de Planes Activa.
+Script de Carga Directa (Bypass de Excel) - Multi-Empresa y CRM Actualizado
 """
 import os
 import uuid
@@ -40,7 +40,7 @@ def encrypt_aes(plaintext: str, key: bytes) -> str:
 
 def generate_hash(value: str) -> str:
     if not value or str(value).strip() == '': return "hash_vacio"
-    return hashlib.sha256(str(value).encode('utf-8')).hexdigest()[:50] 
+    return hashlib.sha256(str(value).encode('utf-8')).hexdigest()
 
 def clean_money(val):
     if not val: return 0.0
@@ -231,12 +231,27 @@ def ejecutar_carga_directa():
         conn = psycopg2.connect(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT, database=DB_DATABASE)
         cur = conn.cursor()
         
+        # --- NUEVO: PREPARAR LA BASE DE DATOS ANTES DE VACIAR ---
+        print("🛠️ Preparando esquema de Base de Datos para el CRM nuevo...")
+        cur.execute("""
+            ALTER TABLE empresa 
+            ADD COLUMN IF NOT EXISTS estado_contabilidad VARCHAR(50) DEFAULT 'Pendiente',
+            ADD COLUMN IF NOT EXISTS estado_facturacion VARCHAR(50) DEFAULT 'Pendiente',
+            ADD COLUMN IF NOT EXISTS mes_operacion VARCHAR(20) DEFAULT 'Marzo 2026';
+            
+            ALTER TABLE bitacora_gestion
+            ADD COLUMN IF NOT EXISTS tipo_mensaje VARCHAR(30) DEFAULT 'Nota Interna',
+            ADD COLUMN IF NOT EXISTS usuario_nombre VARCHAR(100) DEFAULT 'Usuario del Sistema',
+            ADD COLUMN IF NOT EXISTS leido BOOLEAN DEFAULT false;
+        """)
+        conn.commit()
+        # --------------------------------------------------------
+
+        print("🗑️ Vaciando datos antiguos...")
         cur.execute("TRUNCATE TABLE empresa, empresa_credenciales CASCADE;")
         conn.commit()
 
-        # -------------------------------------------------------------
-        # NUEVO: RECREAR AUTOMÁTICAMENTE LOS PLANES QUE SE BORRARON
-        # -------------------------------------------------------------
+        # Recrear Planes
         cur.execute("SELECT UPPER(nombre) FROM plan;")
         planes_existentes = [row[0] for row in cur.fetchall()]
         
@@ -245,7 +260,6 @@ def ejecutar_carga_directa():
             if p not in planes_existentes:
                 cur.execute("INSERT INTO plan (nombre, precio_base) VALUES (%s, 0)", (p,))
         conn.commit()
-        # -------------------------------------------------------------
 
         cur.execute("SELECT id, nombre FROM plan;")
         mapa_planes = {nombre.upper().strip(): id_plan for id_plan, nombre in cur.fetchall()}
@@ -254,6 +268,8 @@ def ejecutar_carga_directa():
         credenciales_list = []
         ruts_empresas_procesados = set()
         ruts_rl_procesados = set()
+        
+        MES_OPERACION = "Febrero 2026"
 
         f = io.StringIO(DATOS_RAW.strip())
         reader = csv.reader(f, delimiter='\t')
@@ -318,7 +334,8 @@ def ejecutar_carga_directa():
                 safe_str(row[21], 255) if len(row) > 21 else '', rut_rl_enc, rut_rl_hash, 
                 compras, ventas, fact_total, monto_bruto, safe_str(row[8], 50) if len(row) > 8 else '', 
                 row[1].upper() == 'SI' if len(row) > 1 else False, safe_str(row[2], 100) if len(row) > 2 else '', 
-                renta_monto, impuesto_unico, renta_mzo_neto, renta_mzo_bruto, None, '', ''
+                renta_monto, impuesto_unico, renta_mzo_neto, renta_mzo_bruto, None, '', '',
+                "Pendiente", "Pendiente", MES_OPERACION
             ))
 
             credenciales_list.append((
@@ -333,7 +350,8 @@ def ejecutar_carga_directa():
                     telefono_corporativo, email_corporativo, estado_pago, estado_f29, impuesto_pagar, score,
                     nombre_rep, rut_rep_encrypted, rut_rep_hash, compras_mensuales, ventas_mensuales, 
                     facturacion_total, monto_bruto, nro_factura, contrato_renta, estado_formulario_renta, 
-                    monto_renta, impuesto_unico, renta_marzo_neto, renta_marzo_bruto, fecha_pago, nota_urgente, whatsapp
+                    monto_renta, impuesto_unico, renta_marzo_neto, renta_marzo_bruto, fecha_pago, nota_urgente, whatsapp,
+                    estado_contabilidad, estado_facturacion, mes_operacion
                 ) VALUES %s
             """, empresas_list)
 
@@ -343,7 +361,7 @@ def ejecutar_carga_directa():
                 ) VALUES %s
             """, credenciales_list)
             conn.commit()
-            print("[EXITO TOTAL] ¡Planes y Contraseñas restaurados a la perfección!")
+            print("[EXITO TOTAL] ¡Carga directa exitosa con soporte Multi-Empresa!")
         
         cur.close(); conn.close()
     except Exception as e:

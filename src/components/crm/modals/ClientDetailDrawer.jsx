@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Building2, User, Edit, DollarSign, Briefcase, FileSpreadsheet, Key, Send, Save, Clock, AlertTriangle } from 'lucide-react';
+import { X, Building2, User, Edit, DollarSign, Briefcase, FileSpreadsheet, Key, Send, Save, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { EditableField, SecureField } from '../ui/CrmUI';
 import { createNotaApi } from '@/services/crmService';
+
+// IMPORTAMOS EL USEAUTH PARA SELECCIONAR A LA EMPRESA GLOBALMENTE
+import { useAuth } from '@/hooks/useAuth'; 
 
 const ClientDetailDrawer = ({ client, onClose, onUpdateClient }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState(client);
     const [newNote, setNewNote] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
+
+    // =========================================
+    // LÓGICA PARA SELECCIONAR LA EMPRESA ACTIVA
+    // =========================================
+    const { selectedCompany, setSelectedCompany } = useAuth();
+    const isSelected = selectedCompany?.id === client?.id;
+
+    const handleSelectCompany = () => {
+        if (setSelectedCompany) {
+            setSelectedCompany(client);
+            const nombreEmpresa = client.razon_social || client.razonSocial || 'la empresa';
+            toast({ title: "Empresa Activa", description: `Has seleccionado a ${nombreEmpresa} para operar en el sistema.` });
+        }
+    };
+    // =========================================
 
     useEffect(() => {
         setFormData(client);
@@ -126,7 +144,25 @@ const ClientDetailDrawer = ({ client, onClose, onUpdateClient }) => {
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                
+                <div className="flex gap-2 items-center">
+                    {/* ========================================= */}
+                    {/* NUEVO BOTÓN: SELECCIONAR EMPRESA          */}
+                    {/* ========================================= */}
+                    <button 
+                        onClick={handleSelectCompany}
+                        className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all ${isSelected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'}`}
+                    >
+                        {isSelected ? (
+                            <>
+                                <CheckCircle2 size={14} /> Seleccionada
+                            </>
+                        ) : (
+                            'Seleccionar Empresa'
+                        )}
+                    </button>
+                    {/* ========================================= */}
+
                     <button onClick={() => setIsEditing(!isEditing)} className={`p-2 rounded-xl border transition-colors ${isEditing ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-transparent text-gray-400 hover:text-white'}`}>
                         <Edit size={16} />
                     </button>

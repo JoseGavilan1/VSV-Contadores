@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { LayoutList, BarChart3, Download, Upload } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LayoutList, BarChart3, Download, Upload, Building2, ChevronDown, Search, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 import { useBunkerData } from './crm/crmData'; 
@@ -8,7 +8,12 @@ import { updateClienteApi } from '@/services/crmService';
 import CrmTableList from './crm/views/CrmTableList';
 import CrmAnalytics from './crm/modals/CrmAnalytics'; 
 import ClientDetailDrawer from './crm/modals/ClientDetailDrawer';
- 
+
+// =========================================
+// IMPORTAMOS EL USEAUTH AQUÍ TAMBIÉN
+// =========================================
+import { useAuth } from '@/hooks/useAuth';
+
 // Limpiador de texto global
 const cleanStr = (str) => {
   if (!str) return '';
@@ -20,6 +25,16 @@ const CRM = () => {
   
   const { clients: dbClients, cashFlow, services, compliance, risk, loading, refresh } = useBunkerData();
   const [clients, setClients] = useState([]);
+
+  // =========================================
+  // CONSUMIMOS EL ESTADO DE LA EMPRESA ACTIVA DESDE EL CONTEXTO GLOBAL
+  // =========================================
+  const { selectedCompany, setSelectedCompany } = useAuth();
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [selectorSearch, setSelectorSearch] = useState('');
+
+  // Validamos estrictamente si hay una empresa seleccionada con un nombre real escuchando a selectedCompany
+  const activeCompanyName = selectedCompany ? (selectedCompany.razon_social || selectedCompany.razonSocial) : '';
 
   useEffect(() => {
     if (dbClients) setClients(dbClients);
@@ -110,7 +125,108 @@ const CRM = () => {
             <p className="text-gray-400 text-xs mt-1 font-bold tracking-widest uppercase">Monitoreo y Operaciones Financieras</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-            <div className="flex bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-xl p-1">
+            
+            {/* OVERLAY PARA CERRAR EL DROPDOWN AL HACER CLIC AFUERA */}
+            {isSelectorOpen && (
+                <div className="fixed inset-0 z-40" onClick={() => setIsSelectorOpen(false)} />
+            )}
+
+            {/* BOTÓN REAL "SELECCIONAR EMPRESA" (EL DE ARRIBA BLINDADO) */}
+            <div className="relative group z-50">
+                <button 
+                    onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+                    className={`relative flex items-center justify-between gap-2 bg-[#0f172a]/90 backdrop-blur-xl border text-white text-sm font-bold px-4 py-2.5 rounded-xl w-64 md:w-[300px] shadow-lg hover:bg-[#1e293b] transition-all ${isSelectorOpen ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/10'}`}
+                >
+                    <div className="flex items-center gap-2 truncate">
+                        <Building2 size={16} className={activeCompanyName ? "text-emerald-400 shrink-0" : "text-blue-400 shrink-0"} />
+                        <span className="truncate tracking-tight">
+                            {activeCompanyName ? activeCompanyName : 'SELECCIONAR EMPRESA'}
+                        </span>
+                    </div>
+                    <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${isSelectorOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* MENÚ DESPLEGABLE GLOBAL */}
+                <AnimatePresence>
+                    {isSelectorOpen && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-[calc(100%+8px)] right-0 w-[300px] md:w-[380px] bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                        >
+                            {/* Buscador */}
+                            <div className="p-3 border-b border-white/5 bg-[#1e293b]/50">
+                                <div className="relative">
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input 
+                                        type="text" 
+                                        autoFocus
+                                        placeholder="Buscar empresa..." 
+                                        value={selectorSearch}
+                                        onChange={(e) => setSelectorSearch(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-gray-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Lista de Empresas */}
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <button 
+                                    onClick={() => {
+                                        if (setSelectedCompany) setSelectedCompany(null);
+                                        setIsSelectorOpen(false);
+                                        setSelectorSearch('');
+                                        toast({ title: "Modo Global", description: "Se ha desmarcado la empresa activa." });
+                                    }}
+                                    className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2 ${!activeCompanyName ? 'bg-blue-600/10 text-blue-400 border-l-2 border-blue-500' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`}
+                                >
+                                    <LayoutList size={14} /> DESMARCAR EMPRESA
+                                </button>
+
+                                {clients
+                                    .filter(c => cleanStr(c.razon_social || c.razonSocial).includes(cleanStr(selectorSearch)) || cleanStr(c.rut_encrypted || c.rut).includes(cleanStr(selectorSearch)))
+                                    .sort((a, b) => (a.razon_social || a.razonSocial || '').localeCompare(b.razon_social || b.razonSocial || ''))
+                                    .map(c => {
+                                        const isThisSelected = selectedCompany?.id === c.id;
+                                        return (
+                                            <button 
+                                                key={c.id}
+                                                onClick={() => {
+                                                    // AQUÍ ESTÁ EL CAMBIO PRINCIPAL:
+                                                    // Solo seleccionamos el cliente para abrir el Drawer.
+                                                    // Dejamos que el botón de *adentro del Drawer* haga el setSelectedCompany()
+                                                    setSelectedClient(c);
+                                                    setActiveTab('list');
+                                                    setIsSelectorOpen(false);
+                                                    setSelectorSearch('');
+                                                }}
+                                                className={`w-full flex flex-col items-start px-5 py-3 transition-all border-t border-white/5 ${isThisSelected ? 'bg-blue-600/10 border-l-2 border-l-blue-500' : 'hover:bg-white/5 border-l-2 border-l-transparent hover:pl-6'}`}
+                                            >
+                                                <div className="flex justify-between w-full items-center mb-1">
+                                                    <span className={`text-sm font-black tracking-tight truncate pr-2 ${isThisSelected ? 'text-blue-400' : 'text-white'}`}>
+                                                        {c.razon_social || c.razonSocial}
+                                                    </span>
+                                                    {isThisSelected && <CheckCircle2 size={16} className="text-blue-400 shrink-0" />}
+                                                </div>
+                                                <span className="text-[10px] font-mono font-bold text-gray-400 bg-white/5 px-1.5 py-0.5 rounded">
+                                                    {c.rut_encrypted || c.rut}
+                                                </span>
+                                            </button>
+                                        );
+                                })}
+                                {clients.length > 0 && clients.filter(c => cleanStr(c.razon_social || c.razonSocial).includes(cleanStr(selectorSearch))).length === 0 && (
+                                    <div className="p-4 text-center text-xs text-gray-500 uppercase tracking-widest font-black">No hay coincidencias</div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+            {/* FIN DEL BOTON ARRIBA */}
+
+            <div className="flex bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-xl p-1 relative z-10">
                 <button onClick={() => setActiveTab('list')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
                     <LayoutList size={14} /> Clientes
                 </button>
