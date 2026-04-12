@@ -11,19 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { Building2, Mail, CreditCard, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "../../../../../config.js";
 import { cleanRut } from "@/lib/rut.js";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+// IMPORTAMOS EL CONTEXTO GLOBAL PARA LEER LA EMPRESA
+import { useAuth } from "@/hooks/useAuth.jsx"; 
 
 const DOC_CONFIG = {
   title: "Crear Factura Electrónica",
-  description: "Completa los datos para emitir una Factura Electrónica (DTE 33) vía automatización.",
+  description: "Emite una Factura Electrónica (DTE 33) automatizada usando los datos de la empresa activa.",
 };
 
 const FACTURA_TABS = {
@@ -38,32 +35,6 @@ const todayLocalISO = () => {
   return local.toISOString().slice(0, 10);
 };
 
-const BULK_BACKEND_DEFAULTS = {
-  cantidad: "1",
-  ciudadReceptor: "Santiago",
-  fecha: todayLocalISO(),
-  metodo: "1",
-  ciudadEmisor: "Santiago",
-};
-
-const extractInvoiceNumber = (responseData = {}) => {
-  const direct =
-    responseData?.numeroDocumento ??
-    responseData?.numero_documento ??
-    responseData?.nroDocumento ??
-    responseData?.folio ??
-    responseData?.numeroFactura ??
-    responseData?.numero_folio ??
-    responseData?.siiFolio ??
-    responseData?.NroFolio;
-
-  if (direct !== undefined && direct !== null && String(direct).trim() !== "") {
-    return String(direct);
-  }
-  return "-";
-};
-
-// Valores por defecto que exige Puppeteer
 const createEmptyItem = () => ({
   rutFacturar: "", 
   ciudadReceptor: "Santiago", 
@@ -81,13 +52,14 @@ const createEmptyItem = () => ({
   descripcionProducto: "", 
 });
 
+// --- FUNCIONES DE PARSEO CSV ---
 const normalizeHeader = (value) =>
   String(value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 
 const CSV_HEADERS = {
   rutFacturar: ["rutfacturar", "rut_facturar", "rutreceptor", "rut"],
   ciudadReceptor: ["ciudadreceptor", "ciudad_receptor"],
-  name: ["name", "item", "nombreitem", "nombre", "nmbitem"],
+  name: ["name", "item", "nombreitem", "nombre", "nmbitem", "plancontable", "plan"],
   cantidad: ["cantidad", "qtyitem", "qty", "cantidaditem"],
   precio: ["precio", "prcitem", "valor", "monto", "neto"],
   fecha: ["fecha", "fchemis", "fechadeemision", "fechaemision"],
@@ -156,8 +128,12 @@ const mapCsvRowToItem = (row) => {
   
   return base;
 };
+// --------------------------------
 
 export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
+  // Extraemos la empresa activa de la memoria global
+  const { selectedCompany } = useAuth();
+
   const [activeTab, setActiveTab] = useState(FACTURA_TABS.UNICA);
   const [item, setItem] = useState(createEmptyItem());
   
@@ -170,60 +146,80 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
   const [isFinished, setIsFinished] = useState(false);
   const [folioGenerado, setFolioGenerado] = useState(null);
 
+  // Variables calculadas de la empresa para la UI (Blindadas contra nulos)
+  const razonSocialSegura = selectedCompany?.razon_social || selectedCompany?.razonSocial || 'Razón Social Desconocida';
+
   useEffect(() => {
     if (isOpen) {
       setActiveTab(FACTURA_TABS.UNICA);
-      setItem(createEmptyItem());
       setBulkRows([]);
       setBulkPreviewRows([]);
       setBulkFileName("");
       setIsFinished(false);
       setFolioGenerado(null);
+
+      // INYECCIÓN INTELIGENTE DE DATOS: 
+      if (selectedCompany) {
+        setItem({
+          ...createEmptyItem(),
+          rutFacturar: selectedCompany.rut_encrypted || selectedCompany.rut || "",
+          contactoReceptor: selectedCompany.email_corporativo || selectedCompany.correo || selectedCompany.email || "",
+          rutSolicita: selectedCompany.rut_rep_encrypted || selectedCompany.repRut || "",
+          name: selectedCompany.plan_nombre || selectedCompany.plan || "SIN PLAN",
+          precio: selectedCompany.impuesto_pagar || selectedCompany.neto || "",
+          descripcionProducto: "Servicios Contables",
+        });
+      } else {
+        setItem(createEmptyItem());
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, selectedCompany]);
 
   const validate = (sourceItem = item) => {
     const errors = [];
     const precioNum = Number(sourceItem.precio);
 
-    if (!sourceItem.rutFacturar.trim() || !cleanRut(sourceItem.rutFacturar).includes("-")) errors.push("RUT Receptor (incluye guion)");
-    if (!sourceItem.contactoReceptor.trim()) errors.push("Email Contacto Receptor");
-    if (!sourceItem.name.trim()) errors.push("Nombre del Plan");
-    if (!sourceItem.descripcionProducto.trim()) errors.push("Mes / Descripción");
-    if (!Number.isFinite(precioNum) || precioNum <= 0) errors.push("Precio (Neto)");
+    if (!sourceItem.rutFacturar.trim() || !cleanRut(sourceItem.rutFacturar).includes("-")) errors.push("Falta RUT Receptor en la BD");
+    if (!sourceItem.name.trim()) errors.push("Falta el Nombre del Plan en la BD");
+    if (!sourceItem.descripcionProducto.trim()) errors.push("Debes ingresar el Mes / Descripción");
+    if (!Number.isFinite(precioNum) || precioNum <= 0) errors.push("Debes ingresar un Precio (Neto) válido");
 
     if (errors.length > 0) {
-      toast({ variant: "destructive", title: "Faltan campos", description: `Revisa: ${errors.join(", ")}.` });
+      toast({ variant: "destructive", title: "Datos incompletos", description: `Revisa: ${errors.join(", ")}.` });
       return false;
     }
     return true;
   };
 
-  // Función Unitaria corregida
-  const emitirDte = async (sourceItem) => {
+const emitirDte = async (sourceItem) => {
+    // 1. Separamos los RUTs y sus Dígitos Verificadores (DV)
     const rutLimpio = cleanRut(sourceItem.rutFacturar);
     const [rutFull, dv] = rutLimpio.includes('-') ? rutLimpio.split('-') : [rutLimpio, ''];
+    
     const rutSoliLimpio = cleanRut(sourceItem.rutSolicita);
     const [rutSoli, dvSoli] = rutSoliLimpio.includes('-') ? rutSoliLimpio.split('-') : [rutSoliLimpio, ''];
 
+    // 2. Construimos el PAYLOAD EXACTO que espera Puppeteer (Igual que en el lector.js)
     const payloadBackend = {
-      rutReceptor: rutFull,
-      dvReceptor: dv,
-      ciudadEmisor: sourceItem.ciudadEmisor || "Santiago", 
-      telefonoEmisor: sourceItem.telefonoEmisor || "56978278733", 
-      ciudadReceptor: sourceItem.ciudadReceptor || "Santiago", 
-      contactoReceptor: sourceItem.contactoReceptor, 
-      rutSolicita: rutSoli,    
-      dvSolicita: dvSoli,
+      razonSocial: selectedCompany?.razon_social || selectedCompany?.razonSocial || '',
+      rutReceptor: rutFull || '',
+      dvReceptor: dv || '',
+      ciudadEmisor: 'Santiago',       // FIJO
+      telefonoEmisor: '56978278733',  // FIJO
+      ciudadReceptor: 'Santiago',     // FIJO
+      contactoReceptor: sourceItem.contactoReceptor || '',
+      rutSolicita: rutSoli || '',
+      dvSolicita: dvSoli || '',
       producto: {
-          nombre: sourceItem.name,      
-          cantidad: sourceItem.cantidad || "1", 
-          unidad: sourceItem.unidadProducto || "1",   
-          precio: sourceItem.precio,
-          descripcion: sourceItem.descripcionProducto
+          nombre: `Plan ${sourceItem.name}`.trim(), // Se le agrega "Plan" automáticamente
+          cantidad: '1',                            // FIJO
+          unidad: '1',                              // FIJO
+          precio: String(sourceItem.precio).replace(/[^0-9]/g, ''), // Limpiamos para enviar solo números
+          descripcion: sourceItem.descripcionProducto // Dinámico: "Marzo", "Abril", etc.
       }
     };
 
+    // 3. Enviamos el paquete al backend
     const res = await fetch(`${API_BASE_URL}/dte/emitir-manual`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -234,7 +230,8 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     if (!res.ok || data?.ok === false) {
       throw new Error(data?.error || "Error al emitir el documento en el servidor");
     }
-    return data;
+    
+    return data; // Nos devuelve el Folio y el archivo generado
   };
 
   const handleSubmit = async (e) => {
@@ -276,7 +273,6 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     }
   };
 
-  // Envío Masivo a tu nuevo endpoint /emitir-masivo
   const handleBulkSubmit = async () => {
     if (bulkRows.length === 0) return;
     setIsBulkSubmitting(true);
@@ -331,21 +327,28 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => { if(!isSubmitting && !isBulkSubmitting) setIsOpen(val); }}>
-      <DialogContent className="sm:max-w-[980px] bg-zinc-900 border-white/10 text-white">
+      <DialogContent className="sm:max-w-[800px] bg-zinc-900 border-white/10 text-white">
+        
+        {/* PANTALLA DE CARGA / ÉXITO */}
         {(isSubmitting || isFinished) && (
-          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-sm pointer-events-auto">
+          <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-sm pointer-events-auto rounded-lg">
             <div className="flex flex-col items-center gap-6 p-10 text-center w-full max-w-sm">
               {isSubmitting ? (
                 <>
                   <span className="h-16 w-16 animate-spin rounded-full border-4 border-white/10 border-t-blue-500" />
-                  <h3 className="text-xl font-bold">Procesando automatización...</h3>
+                  <h3 className="text-xl font-bold">Firmando con el SII...</h3>
                 </>
               ) : (
                 <>
-                  <h3 className="text-2xl font-bold text-green-400">¡Factura Emitida!</h3>
-                  <p className="text-lg">Folio N° {folioGenerado}</p>
-                  <Button onClick={() => setIsOpen(false)} className="bg-blue-600 hover:bg-blue-700 w-full mt-4">
-                    Cerrar
+                  <div className="h-20 w-20 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <svg className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white uppercase italic tracking-tighter">¡Factura Emitida!</h3>
+                  <p className="text-gray-400 font-mono">Folio N° {folioGenerado}</p>
+                  <Button onClick={() => setIsOpen(false)} className="bg-blue-600 hover:bg-blue-700 w-full mt-4 rounded-xl uppercase font-black tracking-widest text-[10px]">
+                    Finalizar Operación
                   </Button>
                 </>
               )}
@@ -355,57 +358,120 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
         <div className="p-6">
           <DialogHeader>
-            <DialogTitle>{DOC_CONFIG.title}</DialogTitle>
-            <DialogDescription>{DOC_CONFIG.description}</DialogDescription>
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">{DOC_CONFIG.title}</DialogTitle>
+            <DialogDescription className="text-gray-400">{DOC_CONFIG.description}</DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <Button variant={activeTab === FACTURA_TABS.UNICA ? "default" : "secondary"} onClick={() => setActiveTab(FACTURA_TABS.UNICA)}>Factura única</Button>
-            <Button variant={activeTab === FACTURA_TABS.MASIVA ? "default" : "secondary"} onClick={() => setActiveTab(FACTURA_TABS.MASIVA)}>Factura masiva</Button>
+          <div className="grid grid-cols-2 gap-2 mt-6">
+            <Button variant={activeTab === FACTURA_TABS.UNICA ? "default" : "secondary"} onClick={() => setActiveTab(FACTURA_TABS.UNICA)} className={activeTab === FACTURA_TABS.UNICA ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10'}>Factura única</Button>
+            <Button variant={activeTab === FACTURA_TABS.MASIVA ? "default" : "secondary"} onClick={() => setActiveTab(FACTURA_TABS.MASIVA)} className={activeTab === FACTURA_TABS.MASIVA ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10'}>Factura masiva (CSV)</Button>
           </div>
 
           {activeTab === FACTURA_TABS.UNICA && (
-            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>RUT Receptor</Label><Input value={item.rutFacturar} onChange={(e) => setItem({ ...item, rutFacturar: e.target.value })} placeholder="Ej: 77871935-K" /></div>
-                <div className="space-y-2"><Label>Email Contacto Receptor</Label><Input value={item.contactoReceptor} onChange={(e) => setItem({ ...item, contactoReceptor: e.target.value })} placeholder="ejemplo@empresa.cl" /></div>
-                <div className="space-y-2"><Label>RUT Solicita (Opcional)</Label><Input value={item.rutSolicita} onChange={(e) => setItem({ ...item, rutSolicita: e.target.value })} placeholder="Ej: 14143766-0" /></div>
-                <div className="space-y-2"><Label>Nombre del Plan</Label><Input value={item.name} onChange={(e) => setItem({...item, name: e.target.value})} placeholder="Ej: Plan EXECUTIVE" /></div>
-                <div className="space-y-2"><Label>Precio (Neto)</Label><Input type="number" value={item.precio} onChange={(e) => setItem({...item, precio: e.target.value})} /></div>
-                <div className="space-y-2"><Label>Mes / Descripción</Label><Input value={item.descripcionProducto} onChange={(e) => setItem({ ...item, descripcionProducto: e.target.value })} placeholder="Ej: Marzo" /></div>
+            <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+              
+              {/* TARJETA DE RESUMEN DEL CLIENTE (Solo lectura, datos extraídos de la BD) */}
+              <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 shadow-inner">
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Building2 size={14} /> Facturando a
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Razón Social</p>
+                        <p className="text-sm font-black text-white truncate">{razonSocialSegura}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">RUT</p>
+                        <p className="text-sm font-mono text-blue-400">{item.rutFacturar || 'Sin RUT'}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Plan Contratado</p>
+                        <p className="text-sm font-bold text-emerald-400">{item.name}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1"><Mail size={10} /> Correo de Envío</p>
+                        <p className="text-sm text-gray-300 truncate">{item.contactoReceptor || 'Sin correo registrado'}</p>
+                    </div>
+                </div>
               </div>
-              <DialogFooter className="mt-6 border-t border-white/10 pt-4">
-                <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
-                <Button type="submit" className="bg-blue-600">Emitir Factura Manual</Button>
+
+              {/* CAMPOS EDITABLES */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-gray-300">Precio (Neto)</Label>
+                    <div className="relative">
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <Input 
+                            type="number" 
+                            value={item.precio} 
+                            onChange={(e) => setItem({...item, precio: e.target.value})} 
+                            className="pl-10 bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl text-lg font-mono"
+                            placeholder="Ej: 50000"
+                        />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-gray-300">Mes / Descripción</Label>
+                    <Input 
+                        value={item.descripcionProducto} 
+                        onChange={(e) => setItem({ ...item, descripcionProducto: e.target.value })} 
+                        className="bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl"
+                        placeholder="Ej: Servicios de Marzo" 
+                    />
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6 border-t border-white/5 pt-6">
+                <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">Cancelar</Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-500 rounded-xl px-8 shadow-lg shadow-blue-500/20 font-black uppercase text-[10px] tracking-widest">
+                    Emitir Factura Ahora
+                </Button>
               </DialogFooter>
             </form>
           )}
 
           {activeTab === FACTURA_TABS.MASIVA && (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-6">
               <div className="space-y-2">
                 <Label>Archivo CSV</Label>
-                <Input type="file" accept=".csv,text/csv" onChange={handleCsvFileChange} disabled={isBulkSubmitting} />
+                <Input type="file" accept=".csv,text/csv" onChange={handleCsvFileChange} disabled={isBulkSubmitting} className="bg-black/40 border-white/10 file:text-white file:bg-white/10 file:rounded-lg file:border-0 hover:file:bg-white/20" />
               </div>
               {bulkPreviewRows.length > 0 && (
-                <div className="max-h-56 overflow-auto rounded-md border border-white/10 mt-4">
+                <div className="max-h-56 overflow-auto rounded-xl border border-white/10 mt-4 custom-scrollbar">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-white/10"><tr><th className="p-2">PLAN</th><th className="p-2">NETO</th><th className="p-2">RUT</th><th className="p-2">ESTADO</th></tr></thead>
-                    <tbody>
+                    <thead className="bg-white/5 sticky top-0 backdrop-blur-md">
+                        <tr>
+                            <th className="p-3 font-black text-gray-400 uppercase tracking-widest">Plan</th>
+                            <th className="p-3 font-black text-gray-400 uppercase tracking-widest">Neto</th>
+                            <th className="p-3 font-black text-gray-400 uppercase tracking-widest">RUT</th>
+                            <th className="p-3 font-black text-gray-400 uppercase tracking-widest">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
                       {bulkPreviewRows.map((row, i) => (
-                        <tr key={i} className="border-t border-white/10">
-                          <td className="p-2">{row.plan}</td><td className="p-2">{row.neto}</td><td className="p-2">{row.rut}</td>
-                          <td className="p-2">{row.estado === "procesando" ? "⏳ Procesando..." : row.estado}</td>
+                        <tr key={i} className="hover:bg-white/[0.02]">
+                          <td className="p-3 font-medium">{row.plan}</td>
+                          <td className="p-3 text-emerald-400 font-mono">${row.neto}</td>
+                          <td className="p-3 text-gray-300 font-mono">{row.rut}</td>
+                          <td className="p-3">
+                              {row.estado === "procesando" ? (
+                                  <span className="text-blue-400 flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Procesando</span>
+                              ) : row.estado === "emitida" ? (
+                                  <span className="text-emerald-400 font-bold">Completado</span>
+                              ) : (
+                                  <span className="text-gray-500">En espera</span>
+                              )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
-                <Button className="bg-blue-600" onClick={handleBulkSubmit} disabled={isBulkSubmitting || bulkRows.length === 0}>
-                  {isBulkSubmitting ? "Emitiendo Lote..." : "Emitir Facturas Masivas"}
+              <DialogFooter className="mt-6 border-t border-white/5 pt-6">
+                <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-gray-400">Cancelar</Button>
+                <Button className="bg-blue-600 hover:bg-blue-500 rounded-xl px-8 shadow-lg shadow-blue-500/20 font-black uppercase text-[10px] tracking-widest" onClick={handleBulkSubmit} disabled={isBulkSubmitting || bulkRows.length === 0}>
+                  {isBulkSubmitting ? "Emitiendo Lote..." : "Iniciar Emisión Masiva"}
                 </Button>
               </DialogFooter>
             </div>

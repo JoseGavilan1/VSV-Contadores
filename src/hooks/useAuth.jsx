@@ -11,7 +11,8 @@ const AuthContext = createContext(null);
 
 const getInitialState = (key, fallback) => {
     try {
-        const item = localStorage.getItem(key);
+        // Leemos también la memoria que dejamos en el CRM para que esté sincronizado
+        const item = localStorage.getItem(key) || localStorage.getItem('empresaActivaCRM');
         return item ? JSON.parse(item) : fallback;
     } catch (error) {
         return fallback;
@@ -29,16 +30,8 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    // Autoseleccionar empresa SOLO si el usuario tiene empresas asignadas
-    useEffect(() => {
-        if (!loading && user && !selectedCompany) {
-            if (user.assignedCompanies?.length > 0) {
-                const firstCompany = user.assignedCompanies[0];
-                setSelectedCompany(firstCompany);
-                localStorage.setItem('selectedCompany', JSON.stringify(firstCompany));
-            }
-        }
-    }, [user, selectedCompany, loading]);
+    // ❌ ELIMINADO: El useEffect que te forzaba a seleccionar la primera empresa.
+    // Ahora, si tú decides dejarlo en blanco, el sistema se quedará en blanco.
 
     const logout = useCallback(() => {
         setUser(null);
@@ -67,11 +60,11 @@ export const AuthProvider = ({ children }) => {
                 setUser(data);
                 localStorage.setItem('user', JSON.stringify(data));
 
-                if (data.assignedCompanies?.length > 0) {
-                    const firstCompany = data.assignedCompanies[0];
-                    setSelectedCompany(firstCompany);
-                    localStorage.setItem('selectedCompany', JSON.stringify(firstCompany));
-                }
+                // ❌ ELIMINADO: La inyección de la primera empresa al hacer login.
+                // Nos aseguramos de que el sistema inicie limpio.
+                setSelectedCompany(null);
+                localStorage.removeItem('selectedCompany');
+                localStorage.removeItem('empresaActivaCRM');
                 
                 setLoading(false);
                 navigate('/dashboard', { replace: true });
@@ -147,8 +140,11 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (user) {
             localStorage.setItem('user', JSON.stringify(user));
-            if (selectedCompany) localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
-            else localStorage.removeItem('selectedCompany');
+            if (selectedCompany) {
+                localStorage.setItem('selectedCompany', JSON.stringify(selectedCompany));
+            } else {
+                localStorage.removeItem('selectedCompany');
+            }
         }
     }, [user, selectedCompany]);
 
@@ -156,6 +152,7 @@ export const AuthProvider = ({ children }) => {
         user, 
         isAuthenticated: !!user, 
         selectedCompany,
+        setSelectedCompany, // ✅ AÑADIDO: Permite cambiar la empresa sin redireccionar
         loading,
         login, 
         logout, 

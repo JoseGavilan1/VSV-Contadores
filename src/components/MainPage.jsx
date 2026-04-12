@@ -12,7 +12,8 @@ import { SiiProvider } from '@/contexts/SiiContext.jsx';
 import DelayedLoader from './ui/DelayedLoader';
 
 function MainPage() {
-  const { user, logout } = useAuth(); // Quitamos selectedCompany de aquí porque ya no lo usaremos para bloquear
+  // AQUÍ AGREGAMOS selectedCompany
+  const { user, logout, selectedCompany } = useAuth(); 
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -54,7 +55,6 @@ function MainPage() {
       <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 font-sans">
         
         <AnimatePresence>
-          {/* CAMBIO AQUÍ: Quitamos selectedCompany && */}
           {(sidebarOpen || windowWidth >= 1024) && (
             <motion.aside
               initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -300, opacity: 0 }}
@@ -91,12 +91,26 @@ function MainPage() {
         <div className="flex-1 flex flex-col h-full overflow-hidden w-full">
           <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 w-full z-30 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center space-x-4">
-               {/* CAMBIO AQUÍ: Quitamos selectedCompany && */}
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-white">
                 {sidebarOpen ? <X /> : <Menu />}
               </Button>
             </div>
+            
             <div className="flex items-center space-x-4">
+              
+              {/* ========================================= */}
+              {/* INDICADOR DE EMPRESA SELECCIONADA         */}
+              {/* ========================================= */}
+              {selectedCompany && (
+                  <div className="hidden md:flex flex-col items-end mr-2 pr-4 border-r border-white/10">
+                      <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Empresa Activa</span>
+                      <span className="text-xs text-emerald-400 font-bold truncate max-w-[200px] uppercase">
+                          {selectedCompany.razon_social || selectedCompany.razonSocial}
+                      </span>
+                  </div>
+              )}
+              {/* ========================================= */}
+
               <div className="hidden md:block text-right mr-2">
                 <p className="text-white text-sm font-bold italic uppercase">{user?.nombre}</p>
                 <p className="text-[9px] font-black uppercase text-amber-400 tracking-widest">{user?.rol}</p>
