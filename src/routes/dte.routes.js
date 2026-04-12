@@ -11,7 +11,8 @@ import {
     getSessionData,
     verificarSesion,
     obtenerPDF,
-    emitirBoletaHonorarios
+    emitirBoletaHonorarios,
+    getHistorialController // <--- 1. AGREGAMOS ESTA FUNCIÓN AQUÍ
 } from "../controllers/dte.controllers.js";
 import path from 'path';
 import fs from 'fs';
@@ -38,7 +39,13 @@ dteRoutes.post('/emitir-boleta', emitirBoletaHonorarios);
 dteRoutes.post('/emitir-manual', emitirManualController);
 dteRoutes.post('/emitir-masivo', emitirMasivoController);
 
-// Ruta para descargar el PDF generado
+// ==========================================
+// PUNTO 2: RUTA PARA OBTENER EL HISTORIAL
+// ==========================================
+dteRoutes.get('/historial', getHistorialController);
+
+
+// Ruta para descargar el PDF generado localmente
 dteRoutes.get('/download/:fileName', (req, res) => {
     const { fileName } = req.params;
     

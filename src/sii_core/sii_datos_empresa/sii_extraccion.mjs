@@ -1,63 +1,125 @@
+/**
+ * sii_extraccion.mjs
+ * Apertura secuencial de paneles para evitar bloqueos AJAX del SII.
+ */
+
 export async function extraerDatosTributarios(page) {
-    console.log("[+] Esperando a que cargue el dashboard del SII...");
-    await page.waitForSelector("#nameCntr", { timeout: 20000 });
+    console.log("📂 [2/4] Accediendo a 'Datos personales y tributarios'...");
     
-    console.log("[+] Verificando banner 'Más Tarde'...");
-    try {
-        await new Promise(r => setTimeout(r, 2000));
-        await page.evaluate(() => {
-            const btn = Array.from(document.querySelectorAll('button, a')).find(el => el.innerText?.toLowerCase().includes('mas tarde') || el.innerText?.toLowerCase().includes('m\u00e1s tarde'));
-            if (btn) btn.click();
-            else document.querySelector('[data-dismiss="modal"]')?.click();
-        });
-        await new Promise(r => setTimeout(r, 1000)); 
-    } catch (e) {}
+    await page.waitForSelector("#menu_datos_contribuyente");
+    await page.evaluate(() => document.querySelector("#menu_datos_contribuyente").click());
+    await page.waitForSelector("#accordionCntrb");
 
-    console.log("[+] Extrayendo datos vitales...");
+    console.log("   👉 Solicitando datos al servidor (Apertura secuencial para evitar bloqueos)...");
+    
+    // Lista exacta de todos los paneles que mencionaste
+    const paneles = [
+        'ctracc_1',   // Direcciones
+        'ctracc_2',   // Teléfonos y Correos
+        'ctracc_3',   // Inicio y Término
+        'ctracc_cutri', // Estado Cumplimiento
+        'ctracc_6',   // Actividades
+        'ctracc_7',   // Sociedades
+        'ctracc_9',   // Características
+        'ctracc_100', // Apoderados
+        'ctracc_11',  // Documentos
+        'ctracc_10',  // Bienes Raíces
+        'ctracc_12'   // Oficina SII
+    ];
+
+    // Clic secuencial desde Puppeteer (como un humano rápido)
+    for (const panelId of paneles) {
+        await page.evaluate((id) => {
+            const enlace = document.querySelector(`#${id} .panel-heading a`);
+            if (enlace) enlace.click();
+            else {
+                const div = document.getElementById(id);
+                if (div) div.click();
+            }
+        }, panelId);
+        // Pausa de 250ms entre cada clic para que el SII no anule las peticiones AJAX
+        await new Promise(r => setTimeout(r, 250));
+    }
+
+    console.log("   ⏳ Esperando que el SII termine de poblar todas las tablas (7 segundos)...");
+    await new Promise(r => setTimeout(r, 7000));
+
+    console.log("🔍 [3/4] Extrayendo información profunda...");
     return await page.evaluate(() => {
-        const getText = (selector) => document.querySelector(selector)?.textContent?.trim() || 'No registra';
+        const clean = (t) => t?.replace(/\s+/g, ' ').trim() || '';
+        const getText = (selector) => clean(document.querySelector(selector)?.innerText);
 
-        const razonSocial = getText("#nameCntr");
-        const rut = getText("#rutCntr");
-        const direccion = getText("#domiCntr");
-        const correo = getText("#mailCntr");
+        // Lector inteligente de tablas
+        const extraerTabla = (selectorPanel) => {
+            const filas = Array.from(document.querySelectorAll(`${selectorPanel} tbody tr`));
+            return filas.map(tr => {
+                const celdas = Array.from(tr.querySelectorAll("td"));
+                if (celdas.length === 1 && celdas[0].colSpan > 1) return null; // "Cargando..."
+                if (tr.innerText.includes("Mostrando del") || tr.innerText.includes("Siguiente")) return null;
+                
+                if (celdas.length > 0) return celdas.map(td => clean(td.innerText)).join(' | ');
+                return null;
+            }).filter(Boolean);
+        };
 
+        // Extractor de texto para paneles sin tabla tradicional (ej. Características, Oficina)
+        const extraerCuerpo = (selectorPanel) => {
+            const cuerpo = document.querySelector(`${selectorPanel} .panel-body`);
+            return cuerpo ? clean(cuerpo.innerText) : 'No registra';
+        };
+
+        // --- BÁSICOS ---
+        const razonSocial = getText("#nameCntr") || 'No registra';
+        const rut = getText("#rutCntr") || 'No registra';
+        const direccionPrincipal = getText("#domiCntr") || 'No registra';
+        let comuna = 'SANTIAGO';
+        if (direccionPrincipal.includes("COMUNA")) {
+            comuna = clean(direccionPrincipal.split("COMUNA")[1]?.split("CIUDAD")[0]);
+        }
+
+        // --- CONTACTO ---
         let telefono = 'No registra';
-        const cellTel = Array.from(document.querySelectorAll("#tablaDatosTelefonos td")).find(td => /^\d{7,15}$/.test(td.textContent.trim()));
-        if (cellTel) telefono = cellTel.textContent.trim();
+        let correo = 'No registra';
+        const tdsContacto = Array.from(document.querySelectorAll("#ctracc_2 td"));
+        const elCorreo = tdsContacto.find(td => td.innerText.includes("@"));
+        const elFono = tdsContacto.find(td => /^[0-9]{8,15}$/.test(td.innerText.replace(/\s+/g, '')));
+        if (elCorreo) correo = clean(elCorreo.innerText);
+        if (elFono) telefono = clean(elFono.innerText);
 
-        const representantes = Array.from(document.querySelectorAll("#tablaRepresentantes tr, .table-representantes tr"))
-            .map(tr => {
-                let nombre = tr.querySelector('td[data-title*="Nombre"]')?.textContent?.trim();
-                let rutRep = tr.querySelector('td[data-title*="Rut"]')?.textContent?.trim();
-                if (!nombre || !rutRep) {
-                    const celdas = tr.querySelectorAll('td');
-                    if (celdas.length >= 2) { rutRep = celdas[0].textContent.trim(); nombre = celdas[1].textContent.trim(); }
-                }
-                return { nombre, rut: rutRep };
-            }).filter(r => r.nombre && r.rut && !r.nombre.toLowerCase().includes('nombre'));
+        // --- TABLAS MASIVAS ---
+        const direcciones = extraerTabla("#ctracc_1");
+        const actividades = extraerTabla("#ctracc_6");
+        const sociedades = extraerTabla("#ctracc_7");
+        const apoderados = extraerTabla("#ctracc_100");
+        const documentos = extraerTabla("#ctracc_11");
+        const bienesRaices = extraerTabla("#ctracc_10");
 
-        let inicioActividades = 'No registra', terminoGiro = 'Vigente', estadoCumplimiento = 'No determinado';
-        const elementos = Array.from(document.querySelectorAll("div, span, p, td"));
-        for (let i = 0; i < elementos.length; i++) {
-            const txt = elementos[i].textContent.trim();
-            if (txt.includes("Inicio de Actividades")) inicioActividades = elementos[i].nextElementSibling?.textContent?.trim() || 'No encontrado';
-            if (txt.includes("Término de Giro") && !txt.includes("Sin")) terminoGiro = elementos[i].nextElementSibling?.textContent?.trim() || 'Registra término';
-            if (txt.includes("Estado de Cumplimiento") || txt.includes("Situación Tributaria")) estadoCumplimiento = elementos[i].nextElementSibling?.textContent?.trim() || 'Revisar portal';
-        }
+        // --- TEXTOS ---
+        const inicioActividades = extraerCuerpo("#ctracc_3");
+        const caracteristicas = extraerCuerpo("#ctracc_9");
+        const oficinaSII = extraerCuerpo("#ctracc_12");
+        
+        let estadoF29 = 'PENDIENTE';
+        if (document.body.innerText.toUpperCase().includes("AL DÍA")) estadoF29 = 'DECLARADO';
 
+        // --- CORRECCIÓN DE GIRO ---
         let giro = 'Sin giro registrado';
-        const filasAct = Array.from(document.querySelectorAll("#tablaActividades tr, .table-actividades tr"));
-        if (filasAct.length > 1) {
-            const celdas = filasAct[1].querySelectorAll('td');
-            if (celdas.length > 0) giro = celdas[0].textContent.trim();
+        if (actividades.length > 0) {
+            // actividades[0] trae: "OTRAS ACTIVIDADES... | 960909 | 2 | NO | 05-08-2011"
+            giro = actividades[0].split(' | ')[0]; // Toma la descripción, no el código numérico
         }
 
-        let comuna = 'Santiago';
-        if (direccion && direccion.toUpperCase().includes('COMUNA')) {
-            comuna = direccion.toUpperCase().split('COMUNA')[1].trim();
+        let nombreRep = 'No registra';
+        let rutRep = '';
+        if (sociedades.length > 0) {
+            nombreRep = sociedades[0].split(' | ')[0]; 
+            rutRep = sociedades[0].split(' | ')[1];    
         }
 
-        return { razonSocial, rut, direccion, correo, telefono, inicioActividades, terminoGiro, estadoCumplimiento, representantes, giro, comuna };
+        return {
+            razonSocial, rut, comuna, correo, telefono, estadoF29, 
+            direcciones, actividades, sociedades, apoderados, documentos, bienesRaices, 
+            inicioActividades, caracteristicas, oficinaSII, giro, nombreRep, rutRep
+        };
     });
 }

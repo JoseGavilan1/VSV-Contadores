@@ -1,81 +1,47 @@
-import { iniciarNavegador, loginSII } from './sii_login.mjs';
+import { iniciarNavegador, loginSII, cerrarSesion } from './sii_login.mjs';
 import { extraerDatosTributarios } from './sii_extraccion.mjs';
-import { guardarEmpresa, verificarEmpresaExistente } from './sii_database.mjs'; 
+import { prepararPayloadSupabase } from './sii_database.mjs'; // Usamos la nueva función
+import 'dotenv/config';
 
-function imprimirResumen(datos) {
-    console.log("\n=======================================================");
-    console.log("🏢 DATOS TRIBUTARIOS EXTRAÍDOS");
-    console.log("=======================================================");
-    console.log(`👤 Razón Social   : ${datos.razonSocial}`);
-    console.log(`🆔 RUT            : ${datos.rut}`);
-    console.log(`📍 Dirección      : ${datos.direccion}`);
-    console.log(`🏙️ Comuna         : ${datos.comuna}`);
-    console.log(`💼 Giro           : ${datos.giro}`);
-    console.log("-------------------------------------------------------");
-    console.log(`📅 Inicio Activid.: ${datos.inicioActividades}`);
-    console.log(`✅ Cumplimiento   : ${datos.estadoCumplimiento}`);
-    console.log(`👥 Representantes : ${datos.representantes.length} encontrados`);
-    console.log("=======================================================\n");
-}
- 
 async function main() {
-    // Captura argumentos: node index.mjs 12345678-9 clave123
-    const args = process.argv.slice(2);
-    const rutInput = args[0] || "77493132-5"; 
-    const claveInput = args[1] || "poli2021";
+    console.log("==================================================");
+    console.log("🚀 VSV CONTADORES - MODO PREVISUALIZACIÓN JSON");
+    console.log("==================================================");
 
-    const credenciales = { 
-        rutCompleto: rutInput.replace(/\./g, ''), 
-        clave: claveInput 
-    };
+    const rut = `${process.env.DTE_RUT}-${process.env.DTE_DV}`;
+    const pass = process.env.DTE_PASS;
 
-    // Declaramos browser y page a nivel global de la función
     let browser;
-    let page; 
+    let page;
 
     try {
-        // --- PASO 1: VERIFICACIÓN EN SUPABASE ---
-        console.log(`\n[1] Verificando RUT ${credenciales.rutCompleto} en el Búnker...`);
-        const empresaExistente = await verificarEmpresaExistente(credenciales.rutCompleto);
-        
-        if (empresaExistente) {
-            console.log(`\n✅ LA EMPRESA YA EXISTE: "${empresaExistente.razon_social}".`);
-            console.log(`[!] El proceso se detiene para evitar duplicados.\n`);
-            process.exit(0); 
-        }
-
-        // --- PASO 2: ENTRAR AL SII (SOLO SI NO EXISTE) ---
-        console.log(`[+] Cliente nuevo detectado. Iniciando recorrido en el SII...`);
         browser = await iniciarNavegador();
-        page = await browser.newPage(); // Usamos la variable global
-        await page.setViewport({ width: 1366, height: 768 });
+        page = await browser.newPage();
+        await page.setViewport({ width: 1920, height: 1080 });
 
-        await loginSII(page, credenciales.rutCompleto, credenciales.clave);
+        const inicioTime = Date.now(); 
 
-        console.log(`[+] Esperando adaptación del portal...`);
-        await new Promise(r => setTimeout(r, 6000)); 
-
-        // --- PASO 3: EXTRACCIÓN Y GUARDADO ---
-        const datosExtraidos = await extraerDatosTributarios(page);
-        imprimirResumen(datosExtraidos);
-
-        await guardarEmpresa(datosExtraidos, credenciales.clave);
-        console.log(`\n[🏁] Proceso completado con éxito para ${datosExtraidos.razonSocial}.`);
+        await loginSII(page, rut, pass);
+        const datosBrutos = await extraerDatosTributarios(page);
         
-    } catch (error) {
-        console.error("\n❌ ERROR CRÍTICO EN EL PROCESO:", error.message);
-    } finally {
-        // --- PASO 4: LIMPIEZA FINAL ---
-        // Cerramos la sesión en la página primero
-        if (page && !page.isClosed()) {
-            await cerrarSesion(page);
-        }
+        // Transformamos los datos al modelo de tu Base de Datos
+        const payloadJSON = prepararPayloadSupabase(datosBrutos, pass);
 
-        // Luego apagamos el navegador completamente
-        if (browser) {
-            console.log("🛑 Apagando el motor del navegador...");
-            await browser.close();
-        }
+        // IMPRIMIMOS EL JSON EN PANTALLA
+        console.log("\n📦 SALIDA JSON GENERADA (LISTA PARA LA BD):");
+        console.log("------------------------------------------------------------------");
+        console.log(JSON.stringify(payloadJSON, null, 4));
+        console.log("------------------------------------------------------------------\n");
+
+        console.log(`⏱️ Tiempo total del proceso: ${((Date.now() - inicioTime) / 1000).toFixed(2)} segundos`);
+        console.log("⚠️ NOTA: Los datos NO han sido guardados en Supabase.");
+
+    } catch (error) {
+        console.error("\n❌ ERROR CRÍTICO EN EL ROBOT PRINCIPAL:", error.message);
+    } finally {
+        if (page) await cerrarSesion(page); 
+        if (browser) await browser.close();
+        console.log("🏁 PROCESO COMPLETADO Y SESIÓN CERRADA.");
         process.exit(0);
     }
 }

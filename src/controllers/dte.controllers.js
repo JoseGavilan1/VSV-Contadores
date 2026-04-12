@@ -8,30 +8,36 @@ import { emitirFacturaPuppeteer } from '../components/facturacion/scripts/factur
 import { emitirLotePuppeteer } from '../components/facturacion/scripts/factura_masiva.mjs';
 
 // ==========================================
-// NUEVO CONTROLADOR: Emisión Manual Puppeteer
+// CONTROLADOR: Emisión Manual Puppeteer
 // ==========================================
 export const emitirManualController = async (req, res) => {
     try {
         const datosFactura = req.body; 
+        
+        // 1. Extraemos el ID de la empresa que viene desde el Frontend
+        const empresaId = req.body.empresa_id; 
 
         // Verificamos que lleguen los datos mínimos
         if (!datosFactura.rutReceptor || !datosFactura.producto) {
             return res.status(400).json({ ok: false, error: "Faltan datos obligatorios para emitir la factura." });
         }
 
-        console.log("Iniciando emisión manual con Puppeteer para RUT:", datosFactura.rutReceptor);
+        if (!empresaId) {
+            return res.status(400).json({ ok: false, error: "Falta el ID de la empresa emisora para guardar el registro." });
+        }
 
-        // Ejecutamos el script de Puppeteer
-        const resultado = await emitirFacturaPuppeteer(datosFactura);
+        console.log(`Iniciando emisión manual con Puppeteer para RUT: ${datosFactura.rutReceptor} (Empresa ID: ${empresaId})`);
 
-        // Devolvemos la respuesta exitosa al frontend
+        // 2. Ejecutamos el script de Puppeteer y le pasamos AMBOS datos
+        const resultado = await emitirFacturaPuppeteer(datosFactura, empresaId);
+
+        // 3. Devolvemos la respuesta exitosa al frontend (Folio y URL del PDF)
         res.status(200).json(resultado);
     } catch (error) {
         console.error("Error en emitirManualController:", error);
-        res.status(500).json({ ok: false, error: error.message || "Error interno al ejecutar Puppeteer." });
+        res.status(500).json({ ok: false, error: error.message });
     }
 };
-
 // ==========================================
 // NUEVO CONTROLADOR: Emisión Masiva Puppeteer
 // ==========================================
@@ -335,3 +341,38 @@ export const emitirBoletaHonorarios = async (req, res) => {
           res.status(500).json({ ok: false, error: error.message });
      }
 }
+
+// ==========================================
+// NUEVO: Obtener Historial desde la BD (Supabase)
+// ==========================================
+export const getHistorialController = async (req, res) => {
+    try {
+        const { empresa_id, mes, anio } = req.query;
+
+        if (!empresa_id) {
+            return res.status(400).json({ ok: false, error: "Se requiere el ID de la empresa." });
+        }
+
+        // Construimos la consulta a Supabase
+        let query = supabase
+            .from('documentos_emitidos')
+            .select('*')
+            .eq('empresa_id', empresa_id);
+
+        // Si el usuario filtró por mes/año en la interfaz, lo aplicamos
+        if (mes && anio) {
+            const inicioMes = `${anio}-${mes}-01`;
+            const finMes = `${anio}-${mes}-31`; // Simplificado
+            query = query.gte('fecha_emision', inicioMes).lte('fecha_emision', finMes);
+        }
+
+        const { data, error } = await query.order('fecha_emision', { ascending: false });
+
+        if (error) throw error;
+
+        res.status(200).json({ ok: true, documentos: data });
+    } catch (error) {
+        console.error("Error al obtener historial:", error);
+        res.status(500).json({ ok: false, error: error.message });
+    }
+};

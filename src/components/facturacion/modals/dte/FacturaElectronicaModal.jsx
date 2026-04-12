@@ -201,6 +201,7 @@ const emitirDte = async (sourceItem) => {
 
     // 2. Construimos el PAYLOAD EXACTO que espera Puppeteer (Igual que en el lector.js)
     const payloadBackend = {
+      empresa_id: selectedCompany.id, // <--- ESTA ES LA LÍNEA NUEVA E IMPORTANTE
       razonSocial: selectedCompany?.razon_social || selectedCompany?.razonSocial || '',
       rutReceptor: rutFull || '',
       dvReceptor: dv || '',
@@ -211,11 +212,11 @@ const emitirDte = async (sourceItem) => {
       rutSolicita: rutSoli || '',
       dvSolicita: dvSoli || '',
       producto: {
-          nombre: `Plan ${sourceItem.name}`.trim(), // Se le agrega "Plan" automáticamente
-          cantidad: '1',                            // FIJO
-          unidad: '1',                              // FIJO
-          precio: String(sourceItem.precio).replace(/[^0-9]/g, ''), // Limpiamos para enviar solo números
-          descripcion: sourceItem.descripcionProducto // Dinámico: "Marzo", "Abril", etc.
+          nombre: `Plan ${sourceItem.name}`.trim(), 
+          cantidad: '1',                            
+          unidad: '1',                              
+          precio: String(sourceItem.precio).replace(/[^0-9]/g, ''), 
+          descripcion: sourceItem.descripcionProducto 
       }
     };
 
