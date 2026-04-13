@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Building2, Mail, CreditCard, Loader2 } from "lucide-react";
+import { Building2, Mail, CreditCard, Loader2, Tag } from "lucide-react";
 import { API_BASE_URL } from "../../../../../config.js";
 import { cleanRut } from "@/lib/rut.js";
 
@@ -160,12 +160,17 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
 
       // INYECCIÓN INTELIGENTE DE DATOS: 
       if (selectedCompany) {
+        // FILTRO PARA TOMAR SOLO EL PRIMER CORREO
+        const correosCrudos = selectedCompany.email_corporativo || selectedCompany.correo || selectedCompany.email || "";
+        const primerCorreo = correosCrudos.split(/[,;/\s]+/)[0].trim();
+
         setItem({
           ...createEmptyItem(),
           rutFacturar: selectedCompany.rut_encrypted || selectedCompany.rut || "",
-          contactoReceptor: selectedCompany.email_corporativo || selectedCompany.correo || selectedCompany.email || "",
+          contactoReceptor: primerCorreo,
           rutSolicita: selectedCompany.rut_rep_encrypted || selectedCompany.repRut || "",
-          name: selectedCompany.plan_nombre || selectedCompany.plan || "SIN PLAN",
+          // Cargamos el plan por defecto, pero el usuario podrá borrarlo o cambiarlo en el formulario
+          name: selectedCompany.plan_nombre || selectedCompany.plan || "", 
           precio: selectedCompany.impuesto_pagar || selectedCompany.neto || "",
           descripcionProducto: "Servicios Contables",
         });
@@ -191,7 +196,7 @@ export default function FacturaElectronicaModal({ isOpen, setIsOpen }) {
     return true;
   };
 
-const emitirDte = async (sourceItem) => {
+  const emitirDte = async (sourceItem) => {
     // 1. Separamos los RUTs y sus Dígitos Verificadores (DV)
     const rutLimpio = cleanRut(sourceItem.rutFacturar);
     const [rutFull, dv] = rutLimpio.includes('-') ? rutLimpio.split('-') : [rutLimpio, ''];
@@ -199,9 +204,9 @@ const emitirDte = async (sourceItem) => {
     const rutSoliLimpio = cleanRut(sourceItem.rutSolicita);
     const [rutSoli, dvSoli] = rutSoliLimpio.includes('-') ? rutSoliLimpio.split('-') : [rutSoliLimpio, ''];
 
-    // 2. Construimos el PAYLOAD EXACTO que espera Puppeteer (Igual que en el lector.js)
+    // 2. Construimos el PAYLOAD EXACTO que espera Puppeteer
     const payloadBackend = {
-      empresa_id: selectedCompany.id, // <--- ESTA ES LA LÍNEA NUEVA E IMPORTANTE
+      empresa_id: selectedCompany.id, 
       razonSocial: selectedCompany?.razon_social || selectedCompany?.razonSocial || '',
       rutReceptor: rutFull || '',
       dvReceptor: dv || '',
@@ -212,7 +217,7 @@ const emitirDte = async (sourceItem) => {
       rutSolicita: rutSoli || '',
       dvSolicita: dvSoli || '',
       producto: {
-          nombre: `Plan ${sourceItem.name}`.trim(), 
+          nombre: sourceItem.name.trim(), // Usa lo que esté escrito en el input
           cantidad: '1',                            
           unidad: '1',                              
           precio: String(sourceItem.precio).replace(/[^0-9]/g, ''), 
@@ -220,7 +225,9 @@ const emitirDte = async (sourceItem) => {
       }
     };
 
-    // 3. Enviamos el paquete al backend
+    console.log("📦 PAQUETE ENVIADO A PUPPETEER:", payloadBackend);
+
+    // 3. ENVÍO REAL AL BACKEND
     const res = await fetch(`${API_BASE_URL}/dte/emitir-manual`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -337,7 +344,7 @@ const emitirDte = async (sourceItem) => {
               {isSubmitting ? (
                 <>
                   <span className="h-16 w-16 animate-spin rounded-full border-4 border-white/10 border-t-blue-500" />
-                  <h3 className="text-xl font-bold">Firmando con el SII...</h3>
+                  <h3 className="text-xl font-bold">Procesando en el SII...</h3>
                 </>
               ) : (
                 <>
@@ -371,7 +378,7 @@ const emitirDte = async (sourceItem) => {
           {activeTab === FACTURA_TABS.UNICA && (
             <form onSubmit={handleSubmit} className="space-y-6 mt-6">
               
-              {/* TARJETA DE RESUMEN DEL CLIENTE (Solo lectura, datos extraídos de la BD) */}
+              {/* TARJETA DE RESUMEN DEL CLIENTE (Solo lectura) */}
               <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 shadow-inner">
                 <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Building2 size={14} /> Facturando a
@@ -386,10 +393,6 @@ const emitirDte = async (sourceItem) => {
                         <p className="text-sm font-mono text-blue-400">{item.rutFacturar || 'Sin RUT'}</p>
                     </div>
                     <div>
-                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Plan Contratado</p>
-                        <p className="text-sm font-bold text-emerald-400">{item.name}</p>
-                    </div>
-                    <div>
                         <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1"><Mail size={10} /> Correo de Envío</p>
                         <p className="text-sm text-gray-300 truncate">{item.contactoReceptor || 'Sin correo registrado'}</p>
                     </div>
@@ -397,28 +400,45 @@ const emitirDte = async (sourceItem) => {
               </div>
 
               {/* CAMPOS EDITABLES */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                
                 <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-300">Precio (Neto)</Label>
+                    <Label className="text-xs font-bold text-gray-300">Plan Contratado / Producto</Label>
                     <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                         <Input 
-                            type="number" 
-                            value={item.precio} 
-                            onChange={(e) => setItem({...item, precio: e.target.value})} 
-                            className="pl-10 bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl text-lg font-mono"
-                            placeholder="Ej: 50000"
+                            type="text" 
+                            value={item.name} 
+                            onChange={(e) => setItem({...item, name: e.target.value})} 
+                            className="pl-10 bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl text-md"
+                            placeholder="Ej: Plan Executive"
                         />
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-300">Mes / Descripción</Label>
-                    <Input 
-                        value={item.descripcionProducto} 
-                        onChange={(e) => setItem({ ...item, descripcionProducto: e.target.value })} 
-                        className="bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl"
-                        placeholder="Ej: Servicios de Marzo" 
-                    />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-300">Precio (Neto)</Label>
+                      <div className="relative">
+                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                          <Input 
+                              type="number" 
+                              value={item.precio} 
+                              onChange={(e) => setItem({...item, precio: e.target.value})} 
+                              className="pl-10 bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl text-lg font-mono"
+                              placeholder="Ej: 50000"
+                          />
+                      </div>
+                  </div>
+                  <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-300">Mes / Descripción</Label>
+                      <Input 
+                          value={item.descripcionProducto} 
+                          onChange={(e) => setItem({ ...item, descripcionProducto: e.target.value })} 
+                          className="bg-black/40 border-white/10 focus:border-blue-500 h-12 rounded-xl"
+                          placeholder="Ej: Servicios de Marzo" 
+                      />
+                  </div>
                 </div>
               </div>
 
