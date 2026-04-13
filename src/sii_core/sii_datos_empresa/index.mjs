@@ -1,47 +1,61 @@
 import { iniciarNavegador, loginSII, cerrarSesion } from './sii_login.mjs';
 import { extraerDatosTributarios } from './sii_extraccion.mjs';
-import { prepararPayloadSupabase } from './sii_database.mjs'; // Usamos la nueva función
+import { guardarEmpresa, verificarEmpresaExistente } from './sii_database.mjs'; 
 import 'dotenv/config';
 
 async function main() {
     console.log("==================================================");
-    console.log("🚀 VSV CONTADORES - MODO PREVISUALIZACIÓN JSON");
+    console.log("🚀 VSV CONTADORES - ONBOARDING DE EMPRESAS (PROD)");
     console.log("==================================================");
 
-    const rut = `${process.env.DTE_RUT}-${process.env.DTE_DV}`;
-    const pass = process.env.DTE_PASS;
+    const rutCompleto = `${process.env.DTE_RUT}-${process.env.DTE_DV}`;
+    const claveInput = process.env.DTE_PASS;
+    const rutLimpio = rutCompleto.replace(/\./g, '');
 
     let browser;
     let page;
 
     try {
+        // --- PASO 1: VERIFICACIÓN EN BASE DE DATOS ---
+        console.log(`\n[1/4] Verificando RUT ${rutCompleto} en el Búnker...`);
+        const empresaExistente = await verificarEmpresaExistente(rutCompleto);
+        
+        if (empresaExistente) {
+            console.log(`\n✅ LA EMPRESA YA EXISTE: "${empresaExistente.razon_social}".`);
+            console.log(`[!] El proceso se detiene para evitar duplicados.\n`);
+            process.exit(0); 
+        }
+
+        // --- PASO 2: EXTRACCIÓN SII ---
+        console.log(`[+] Cliente nuevo detectado. Iniciando recorrido en el SII...`);
+        const inicioTime = Date.now(); 
+
         browser = await iniciarNavegador();
         page = await browser.newPage();
         await page.setViewport({ width: 1920, height: 1080 });
 
-        const inicioTime = Date.now(); 
+        await loginSII(page, rutLimpio, claveInput);
+        const datosExtraidos = await extraerDatosTributarios(page);
 
-        await loginSII(page, rut, pass);
-        const datosBrutos = await extraerDatosTributarios(page);
+        // --- PASO 3: GUARDADO EN BASE DE DATOS ---
+        console.log("\n" + "═".repeat(60));
+        console.log(` 🏢 GUARDANDO DATOS: ${datosExtraidos.razonSocial}`);
+        console.log("═".repeat(60));
         
-        // Transformamos los datos al modelo de tu Base de Datos
-        const payloadJSON = prepararPayloadSupabase(datosBrutos, pass);
+        await guardarEmpresa(datosExtraidos, claveInput);
 
-        // IMPRIMIMOS EL JSON EN PANTALLA
-        console.log("\n📦 SALIDA JSON GENERADA (LISTA PARA LA BD):");
-        console.log("------------------------------------------------------------------");
-        console.log(JSON.stringify(payloadJSON, null, 4));
-        console.log("------------------------------------------------------------------\n");
-
-        console.log(`⏱️ Tiempo total del proceso: ${((Date.now() - inicioTime) / 1000).toFixed(2)} segundos`);
-        console.log("⚠️ NOTA: Los datos NO han sido guardados en Supabase.");
+        console.log("─".repeat(60));
+        console.log(`⏱️ Tiempo total de onboarding: ${((Date.now() - inicioTime) / 1000).toFixed(2)} segundos`);
 
     } catch (error) {
-        console.error("\n❌ ERROR CRÍTICO EN EL ROBOT PRINCIPAL:", error.message);
+        console.error("\n❌ ERROR CRÍTICO EN EL PROCESO:", error.message);
     } finally {
+        // --- PASO 4: LIMPIEZA FINAL ---
         if (page) await cerrarSesion(page); 
-        if (browser) await browser.close();
-        console.log("🏁 PROCESO COMPLETADO Y SESIÓN CERRADA.");
+        if (browser) {
+            await browser.close();
+            console.log("\n🏁 NAVEGADOR APAGADO Y SESIÓN CERRADA.");
+        }
         process.exit(0);
     }
 }

@@ -45,8 +45,8 @@ def crear_admin_maestro():
         )
         cur = conn.cursor()
 
-        nombre = "Administrador Master"
-        rut_admin = "11111111-1" 
+        nombre = "Didianne Grace Vollaire"
+        rut_admin = "11030124-3"
         email_admin = "admin@vsv.cl"
         password_plana = "admin123"
 

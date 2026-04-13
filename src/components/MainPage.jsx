@@ -12,7 +12,6 @@ import { SiiProvider } from '@/contexts/SiiContext.jsx';
 import DelayedLoader from './ui/DelayedLoader';
 
 function MainPage() {
-  // AQUÍ AGREGAMOS selectedCompany
   const { user, logout, selectedCompany } = useAuth(); 
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,24 +28,33 @@ function MainPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const modules = [
-    { id: 'dashboard', path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard, color: 'from-blue-500 to-cyan-500' },
-    { 
-      id: 'CRM', 
-      path: '/CRM', 
-      name: 'CRM', 
-      icon: Package, 
-      color: 'from-pink-500 to-rose-500' 
-    },
-    { id: 'contabilidad', path: '/contabilidad', name: 'Contabilidad', icon: Calculator, color: 'from-green-500 to-emerald-500' },
-    { id: 'rrhh', path: '/rrhh', name: 'Recursos Humanos', icon: Users, color: 'from-purple-500 to-violet-500' },
-    { id: 'facturacion', path: '/facturacion', name: 'Facturación SII', icon: FileText, color: 'from-orange-500 to-red-500' },
-    { id: 'operacionRenta', path: '/operacion-renta', name: 'Operación Renta', icon: FileBarChart, color: 'from-teal-500 to-cyan-600' },
-    { id: 'bancos', path: '/bancos', name: 'Bancos', icon: Landmark, color: 'from-indigo-500 to-blue-600' },
-  ];
+  // =========================================
+  // LÓGICA DE RUTEO POR ROLES (MURO DE SEGURIDAD)
+  // =========================================
+  let modules = [];
 
-  if (user?.rol === 'Administrador') {
-    modules.push({ id: 'admin', path: '/admin', name: 'Administración', icon: ShieldCheck, color: 'from-yellow-500 to-amber-500' });
+  if (user?.rol === 'Cliente') {
+    // 🔒 VISTA RESTRINGIDA (Portal de Clientes)
+    modules = [
+      { id: 'dashboard', path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard, color: 'from-blue-500 to-cyan-500' },
+      { id: 'contabilidad', path: '/contabilidad', name: 'Contabilidad', icon: Calculator, color: 'from-green-500 to-emerald-500' },
+      { id: 'facturacion', path: '/facturacion', name: 'Facturación SII', icon: FileText, color: 'from-orange-500 to-red-500' },
+      { id: 'rrhh', path: '/rrhh', name: 'Recursos Humanos', icon: Users, color: 'from-purple-500 to-violet-500' }
+    ];
+  } else {
+    // 🔓 VISTA EQUIPO VSV (Todo el CRM)
+    modules = [
+      { id: 'dashboard', path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard, color: 'from-blue-500 to-cyan-500' },
+      { id: 'CRM', path: '/CRM', name: 'CRM', icon: Package, color: 'from-pink-500 to-rose-500' },
+      { id: 'contabilidad', path: '/contabilidad', name: 'Contabilidad', icon: Calculator, color: 'from-green-500 to-emerald-500' },
+      { id: 'rrhh', path: '/rrhh', name: 'Recursos Humanos', icon: Users, color: 'from-purple-500 to-violet-500' },
+      { id: 'facturacion', path: '/facturacion', name: 'Facturación SII', icon: FileText, color: 'from-orange-500 to-red-500' },
+      { id: 'operacionRenta', path: '/operacion-renta', name: 'Operación Renta', icon: FileBarChart, color: 'from-teal-500 to-cyan-600' },
+      { id: 'bancos', path: '/bancos', name: 'Bancos', icon: Landmark, color: 'from-indigo-500 to-blue-600' },
+    ];
+    if (user?.rol === 'Administrador') {
+      modules.push({ id: 'admin', path: '/admin', name: 'Administración', icon: ShieldCheck, color: 'from-yellow-500 to-amber-500' });
+    }
   }
 
   return (
@@ -99,12 +107,21 @@ function MainPage() {
             <div className="flex items-center space-x-4">
               
               {/* ========================================= */}
-              {/* INDICADOR DE EMPRESA SELECCIONADA         */}
+              {/* INDICADORES DE VISTA (ADMIN VS CLIENTE)   */}
               {/* ========================================= */}
-              {selectedCompany && (
+              {selectedCompany && user?.rol !== 'Cliente' && (
                   <div className="hidden md:flex flex-col items-end mr-2 pr-4 border-r border-white/10">
                       <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Empresa Activa</span>
                       <span className="text-xs text-emerald-400 font-bold truncate max-w-[200px] uppercase">
+                          {selectedCompany.razon_social || selectedCompany.razonSocial}
+                      </span>
+                  </div>
+              )}
+
+              {selectedCompany && user?.rol === 'Cliente' && (
+                  <div className="hidden md:flex flex-col items-end mr-2 pr-4 border-r border-white/10">
+                      <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Mi Portal</span>
+                      <span className="text-xs text-blue-400 font-bold truncate max-w-[200px] uppercase">
                           {selectedCompany.razon_social || selectedCompany.razonSocial}
                       </span>
                   </div>
