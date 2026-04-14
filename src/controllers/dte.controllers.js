@@ -3,8 +3,9 @@ import * as utils from '../lib/utils.js';
 import * as API_DTE from '../services/apiDTE.js';
 import { crear_cliente } from '../controllers/clientes.controllers.js';
 
-// Importamos el script de Puppeteer para la factura manual y masiva
+// Importamos el script de Puppeteer para la factura manual, masiva y exenta
 import { emitirFacturaPuppeteer } from '../components/facturacion/scripts/factura_manual.mjs';
+import { emitirExentaPuppeteer } from '../components/facturacion/scripts/exenta_manual.mjs';
 import { emitirLotePuppeteer } from '../components/facturacion/scripts/factura_masiva.mjs';
 
 // ==========================================
@@ -26,18 +27,31 @@ export const emitirManualController = async (req, res) => {
             return res.status(400).json({ ok: false, error: "Falta el ID de la empresa emisora para guardar el registro." });
         }
 
-        console.log(`Iniciando emisión manual con Puppeteer para RUT: ${datosFactura.rutReceptor} (Empresa ID: ${empresaId})`);
+        const tipoDoc = datosFactura.tipo_documento || "33"; // Por si acaso no viene, asumimos 33
+        console.log(`🚀 Solicitud recibida para DTE Tipo: ${tipoDoc}`);
 
-        // 2. Ejecutamos el script de Puppeteer y le pasamos AMBOS datos
-        const resultado = await emitirFacturaPuppeteer(datosFactura, empresaId);
+        let result;
 
-        // 3. Devolvemos la respuesta exitosa al frontend (Folio y URL del PDF)
-        res.status(200).json(resultado);
-    } catch (error) {
-        console.error("Error en emitirManualController:", error);
-        res.status(500).json({ ok: false, error: error.message });
+        // ==========================================
+        // 2. EL CEREBRO: ELEGIR EL ROBOT CORRECTO
+        // ==========================================
+        if (tipoDoc === "34") {
+            console.log("🤖 Iniciando Robot para FACTURA EXENTA...");
+            result = await emitirExentaPuppeteer(datosFactura);
+        } else {
+            console.log("🤖 Iniciando Robot para FACTURA AFECTA...");
+            result = await emitirFacturaPuppeteer(datosFactura);
+        }
+
+        // Devolvemos el resultado (Folio, etc.) al Frontend
+        return res.status(200).json(result);
+
+    } catch(error) {
+        console.error("❌ Error en emitirManualController:", error);
+        return res.status(500).json({ ok: false, error: error.message });
     }
 };
+
 // ==========================================
 // NUEVO CONTROLADOR: Emisión Masiva Puppeteer
 // ==========================================
