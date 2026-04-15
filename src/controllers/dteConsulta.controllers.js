@@ -1,63 +1,47 @@
-import path from 'node:path';
-import { consultarDtesService, descargarFolioService } from "../services/dteConsultasService.js";
+import { pool } from '../database/db.js';
+// Importamos la herramienta de desencriptación si es que la necesitas 
+// (aunque en tu esquema rut_cliente parece ser texto plano)
+import { decrypt } from '../utils/crypto.js';
 
-export async function consultarDtesController(req, res) {
-  try {
-    const { mes, anio, rutEmpresa, tipoDoc } = req.query;
+export const consultarHistorialEmpresa = async (req, res) => {
+    try {
+        // Obtenemos el ID desde la consulta (query string)
+        const { empresa_id } = req.query;
 
-    console.log(tipoDoc);
-    
-    if (!mes || !anio || !rutEmpresa) {
-      return res.status(400).json({
-        ok: false,
-        error: "Faltan parámetros: mes, anio, rutEmpresa",
-      });
+        if (!empresa_id) {
+            return res.status(400).json({ ok: false, error: "Falta el identificador de la empresa." });
+        }
+
+        // Ejecutamos la consulta SQL uniendo la tabla de documentos con la de empresa
+        const query = `
+            SELECT 
+                d.id,
+                d.folio,
+                d.tipo_dte,
+                d.monto_neto,
+                d.fecha_emision,
+                d.url_pdf,
+                d.rut_cliente,
+                e.razon_social
+            FROM documentos_emitidos d
+            JOIN empresa e ON d.empresa_id = e.id
+            WHERE d.empresa_id = $1
+            ORDER BY d.fecha_emision DESC;
+        `;
+
+        const result = await pool.query(query, [empresa_id]);
+
+        // Retornamos el arreglo de documentos
+        return res.json({
+            ok: true,
+            documentos: result.rows
+        });
+
+    } catch (error) {
+        console.error('❌ Error en dteConsulta.controller:', error.message);
+        return res.status(500).json({
+            ok: false,
+            error: 'No se pudo conectar con la bóveda de documentos.'
+        });
     }
-
-    const result = await consultarDtesService({ mes, anio, rutEmpresa, tipoDoc });
-    return res.status(result.ok ? 200 : 500).json(result);
-  } catch (err) {
-    console.error("Error consultando DTE:", err);
-    return res.status(500).json({ ok: false, error: err?.message ?? "Error interno" });
-  }
-}
-
-// Añade esto a tu archivo de controladores
-export async function descargarFolioController(req, res) {
-  try {
-    // 1. Sacamos los datos del body enviados por el JSON.stringify del front
-    const { folio, tipoDoc, rutContraparte, tipoRegistro} = req.body;
-    
-    // 2. Sacamos el RUT del header autorizado en CORS
-    const rutContexto = req.headers["x-company-rut"];
-
-    // 🛡️ Si falta CUALQUIERA de estos, lanzará el Error 400 que viste en la imagen
-    if (!folio || !rutContexto || !rutContraparte || !tipoRegistro) {
-      console.error("❌ Faltan datos:", { folio, rutContexto, rutContraparte, tipoRegistro });
-      return res.status(400).json({ 
-        ok: false, 
-        error: "Faltan parámetros críticos: Folio, RUT Contexto, RUT Contraparte o Tipo de Registro." 
-      });
-    }
-
-    const result = await descargarFolioService({
-      rutEmisor: rutContexto, 
-      rutReceptor: rutContraparte,
-      folio,
-      tipoDoc: tipoDoc,
-      tipoRegistro: tipoRegistro
-    });
-
-    if (result.ok && result.fileName) {
-      return res.status(200).json({
-        ok: true,
-        downloadUrl: `/dte/download/${result.fileName}`,
-        fileName: result.fileName
-      });
-    }
-
-    return res.status(500).json(result);
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-}
+};

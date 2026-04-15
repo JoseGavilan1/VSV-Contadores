@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { consultarDtesController, descargarFolioController } from "../controllers/dteConsulta.controllers.js";
+import { consultarHistorialEmpresa } from "../controllers/dteConsulta.controllers.js";
 
 const dteConsultaRoutes = Router();
 
-dteConsultaRoutes.get("/consultar", consultarDtesController);
-dteConsultaRoutes.post("/descargar-folio", descargarFolioController);
+// Definimos la ruta de historial
+dteConsultaRoutes.get('/historial', consultarHistorialEmpresa);
 
 export default dteConsultaRoutes;
