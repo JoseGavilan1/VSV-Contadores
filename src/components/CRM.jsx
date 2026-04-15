@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutList, BarChart3, Download, Upload, Building2, ChevronDown, Search, CheckCircle2 } from 'lucide-react';
+import { LayoutList, BarChart3, Building2, ChevronDown, Search, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 import { useBunkerData } from './crm/crmData'; 
@@ -16,15 +16,19 @@ const cleanStr = (str) => {
   return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 };
 
+// Función auxiliar para saber si un campo está vacío o dice "SIN_DATO"
+const isEmptyField = (val) => {
+    if (!val) return true;
+    const strVal = String(val).trim().toUpperCase();
+    return strVal === '' || strVal === 'SIN_DATO' || strVal === 'SIN REGISTRO';
+};
+
 const CRM = () => {
   const [activeTab, setActiveTab] = useState('list');
   
   const { clients: dbClients, cashFlow, services, compliance, risk, loading } = useBunkerData();
   const [clients, setClients] = useState([]);
 
-  // =========================================
-  // ÚNICA FUENTE DE VERDAD: ESTADO GLOBAL
-  // =========================================
   const { selectedCompany, setSelectedCompany } = useAuth();
   
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -34,17 +38,18 @@ const CRM = () => {
   const [typeFilter, setTypeFilter] = useState('Todos');
   const [selectedClient, setSelectedClient] = useState(null);
 
+  // ESTADO PARA ALTERNAR ENTRE ACTIVAS E INACTIVAS
+  const [vistaActivas, setVistaActivas] = useState(true);
+
   useEffect(() => {
     if (dbClients) setClients(dbClients);
   }, [dbClients]);
 
-  // RECUPERACIÓN ESTRICTA AL CARGAR
   useEffect(() => {
     const savedCompanyStr = localStorage.getItem('empresaActivaCRM') || localStorage.getItem('selectedCompany');
     if (savedCompanyStr) {
         try {
             const parsed = JSON.parse(savedCompanyStr);
-            // Solo actualizamos si el contexto no tiene empresa o tiene una diferente
             if (setSelectedCompany && (!selectedCompany || selectedCompany.id !== parsed.id)) {
                 setSelectedCompany(parsed);
             }
@@ -52,7 +57,6 @@ const CRM = () => {
     }
   }, []); 
 
-  // Sincronizador maestro del panel lateral
   useEffect(() => {
       const handleGlobalClick = (e) => {
           const btn = e.target.closest('button');
@@ -62,7 +66,6 @@ const CRM = () => {
           if (text.includes('SELECCIONAR EMPRESA') || text.includes('SELECCIONADA')) {
               if (selectedClient) {
                   if (setSelectedCompany) setSelectedCompany(selectedClient);
-                  // Guardamos en ambas variables comunes por si useAuth usa la otra
                   localStorage.setItem('empresaActivaCRM', JSON.stringify(selectedClient));
                   localStorage.setItem('selectedCompany', JSON.stringify(selectedClient));
               }
@@ -72,32 +75,48 @@ const CRM = () => {
       return () => window.removeEventListener('click', handleGlobalClick);
   }, [selectedClient, setSelectedCompany]);
 
-  // 🚨 LA CLAVE: El nombre del botón se saca SOLO de la variable global
   const activeCompanyName = selectedCompany?.razon_social || selectedCompany?.razonSocial || null;
 
+  // =========================================
   // STATS INTELIGENTES
+  // =========================================
   const stats = useMemo(() => {
       if (!clients) return { total: 0, criticos: 0, f29Pendientes: 0, alDia: 0 };
+      
+      const clientesEnVista = clients.filter(c => {
+          const rep = c.nombre_rep || c.repNombre;
+          const rutRep = c.rut_rep_encrypted || c.repRut;
+          const correo = c.email_corporativo || c.correo;
+          const tel = c.whatsapp || c.telefono_corporativo || c.telefono;
+
+          const esInactiva = isEmptyField(rep) && isEmptyField(rutRep) && isEmptyField(correo) && isEmptyField(tel);
+          const esActiva = !esInactiva;
+          
+          return vistaActivas ? esActiva : esInactiva;
+      });
+
       return {
-          total: clients.length,
-          criticos: clients.filter(c => {
+          total: clientesEnVista.length,
+          criticos: clientesEnVista.filter(c => {
               const pago = String(c.estado_pago || c.pagoServicio || '').trim().toUpperCase();
               const dts = parseInt(c.dts_mensuales || c.dtAtrasados || 0);
               return pago === 'NO PAGADO' || pago === 'SERVICIO SUSPENDIDO' || dts > 0;
           }).length,
-          f29Pendientes: clients.filter(c => {
+          f29Pendientes: clientesEnVista.filter(c => {
               const f29 = String(c.estado_f29 || c.estadoFormulario || '').trim().toUpperCase();
               return f29 === 'PENDIENTE';
           }).length,
-          alDia: clients.filter(c => {
+          alDia: clientesEnVista.filter(c => {
               const pago = String(c.estado_pago || c.pagoServicio || '').trim().toUpperCase();
               const f29 = String(c.estado_f29 || c.estadoFormulario || '').trim().toUpperCase();
               return (pago === 'AL DIA' || pago === 'PAGADO') && (f29 === 'DECLARADO' || f29 === 'NO DECLARAR');
           }).length
       };
-  }, [clients]);
+  }, [clients, vistaActivas]);
 
-  // FILTRO INTELIGENTE
+  // =========================================
+  // FILTRO PARA LA TABLA
+  // =========================================
   const filteredClients = useMemo(() => {
       return clients.filter(c => {
           const razonSocial = String(c.razon_social || c.razonSocial || '').toLowerCase();
@@ -107,8 +126,18 @@ const CRM = () => {
           const f29 = String(c.estado_f29 || c.estadoFormulario || '').trim().toUpperCase();
           const dts = parseInt(c.dts_mensuales || c.dtAtrasados || 0);
 
+          const rep = c.nombre_rep || c.repNombre;
+          const rutRep = c.rut_rep_encrypted || c.repRut;
+          const correo = c.email_corporativo || c.correo;
+          const tel = c.whatsapp || c.telefono_corporativo || c.telefono;
+
+          const esInactiva = isEmptyField(rep) && isEmptyField(rutRep) && isEmptyField(correo) && isEmptyField(tel);
+          const esActiva = !esInactiva;
+          const matchActividad = vistaActivas ? esActiva : esInactiva;
+
           const matchSearch = cleanStr(razonSocial).includes(cleanStr(searchTerm.toLowerCase())) || rut.includes(searchTerm.toLowerCase());
           const matchType = typeFilter === 'Todos' || tipo === typeFilter;
+          
           let matchStatus = true;
           if (statusFilter === 'Críticos') {
               matchStatus = pago === 'NO PAGADO' || pago === 'SERVICIO SUSPENDIDO' || dts > 0;
@@ -117,9 +146,10 @@ const CRM = () => {
           } else if (statusFilter === 'Al Día') {
               matchStatus = (pago === 'AL DIA' || pago === 'PAGADO') && (f29 === 'DECLARADO' || f29 === 'NO DECLARAR');
           }
-          return matchSearch && matchType && matchStatus;
+          
+          return matchSearch && matchType && matchStatus && matchActividad;
       });
-  }, [clients, searchTerm, statusFilter, typeFilter]);
+  }, [clients, searchTerm, statusFilter, typeFilter, vistaActivas]);
 
   const handleUpdateClient = async (updatedClient) => {
     try {
@@ -129,10 +159,8 @@ const CRM = () => {
       const res = await updateClienteApi(user.sessionId, updatedClient.id, updatedClient);
       if(res.success || res){
           setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
-          if(selectedClient?.id === updatedClient.id) {
-              setSelectedClient(updatedClient);
-          }
-          toast({ title: "Cliente actualizado", description: "Los cambios se guardaron correctamente en la base de datos." });
+          if(selectedClient?.id === updatedClient.id) setSelectedClient(updatedClient);
+          toast({ title: "Cliente actualizado", description: "Los cambios se guardaron correctamente." });
       }
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el cliente." });
@@ -186,22 +214,20 @@ const CRM = () => {
                                     <input 
                                         type="text" 
                                         autoFocus
-                                        placeholder="Buscar empresa por nombre o RUT..." 
+                                        placeholder="Buscar empresa..." 
                                         value={selectorSearch}
                                         onChange={(e) => setSelectorSearch(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-gray-500"
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                                     />
                                 </div>
                             </div>
 
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                                
                                 <button 
                                     onClick={() => {
                                         if (setSelectedCompany) setSelectedCompany(null);
                                         localStorage.removeItem('empresaActivaCRM');
                                         localStorage.removeItem('selectedCompany');
-                                        
                                         setIsSelectorOpen(false);
                                         setSelectorSearch('');
                                         toast({ title: "Modo Global", description: "Se ha desmarcado la empresa activa." });
@@ -211,8 +237,25 @@ const CRM = () => {
                                     <LayoutList size={14} /> SELECCIONAR EMPRESA
                                 </button>
 
+                                {/* AQUÍ ESTÁ EL CAMBIO: El selector ahora respeta si estás en Activas o Inactivas */}
                                 {clients
-                                    .filter(c => cleanStr(c.razon_social || c.razonSocial).includes(cleanStr(selectorSearch)) || cleanStr(c.rut_encrypted || c.rut).includes(cleanStr(selectorSearch)))
+                                    .filter(c => {
+                                        // 1. Buscador interno del selector
+                                        const matchSearch = cleanStr(c.razon_social || c.razonSocial).includes(cleanStr(selectorSearch)) || 
+                                                            cleanStr(c.rut_encrypted || c.rut).includes(cleanStr(selectorSearch));
+                                        
+                                        // 2. Filtro de Activa / Inactiva
+                                        const rep = c.nombre_rep || c.repNombre;
+                                        const rutRep = c.rut_rep_encrypted || c.repRut;
+                                        const correo = c.email_corporativo || c.correo;
+                                        const tel = c.whatsapp || c.telefono_corporativo || c.telefono;
+
+                                        const esInactiva = isEmptyField(rep) && isEmptyField(rutRep) && isEmptyField(correo) && isEmptyField(tel);
+                                        const esActiva = !esInactiva;
+                                        const matchActividad = vistaActivas ? esActiva : esInactiva;
+
+                                        return matchSearch && matchActividad;
+                                    })
                                     .sort((a, b) => (a.razon_social || a.razonSocial || '').localeCompare(b.razon_social || b.razonSocial || ''))
                                     .map(c => {
                                         const isThisSelected = selectedCompany?.id === c.id;
@@ -220,11 +263,9 @@ const CRM = () => {
                                             <button 
                                                 key={c.id}
                                                 onClick={() => {
-                                                    // GUARDADO DIRECTO AL ESTADO GLOBAL
                                                     if (setSelectedCompany) setSelectedCompany(c);
                                                     localStorage.setItem('empresaActivaCRM', JSON.stringify(c));
                                                     localStorage.setItem('selectedCompany', JSON.stringify(c));
-                                                    
                                                     setActiveTab('list');
                                                     setIsSelectorOpen(false);
                                                     setSelectorSearch('');
@@ -264,11 +305,18 @@ const CRM = () => {
       {activeTab === 'list' && (
         <div className="flex gap-6 relative items-start h-full">
             <CrmTableList 
-                filteredClients={filteredClients} stats={stats} 
-                onClientSelect={setSelectedClient} selectedClientId={selectedClient?.id}
-                searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-                statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-                typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+                filteredClients={filteredClients} 
+                stats={stats} 
+                onClientSelect={setSelectedClient} 
+                selectedClientId={selectedClient?.id}
+                searchTerm={searchTerm} 
+                setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter} 
+                setStatusFilter={setStatusFilter}
+                typeFilter={typeFilter} 
+                setTypeFilter={setTypeFilter}
+                vistaActivas={vistaActivas}       // PASAMOS EL ESTADO
+                setVistaActivas={setVistaActivas} // PASAMOS LA FUNCIÓN
             />
 
             <AnimatePresence>
@@ -284,12 +332,7 @@ const CRM = () => {
       )}
 
       {activeTab === 'analytics' && (
-        <CrmAnalytics 
-          cashFlow={cashFlow}
-          services={services}
-          compliance={compliance}
-          risk={risk}
-        />
+        <CrmAnalytics cashFlow={cashFlow} services={services} compliance={compliance} risk={risk} />
       )}
       
     </div>

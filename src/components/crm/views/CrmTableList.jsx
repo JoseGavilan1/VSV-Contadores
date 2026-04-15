@@ -4,7 +4,8 @@ import { StatCard } from '../ui/CrmUI';
 
 const CrmTableList = ({ 
     filteredClients, stats, onClientSelect, selectedClientId, 
-    searchTerm, setSearchTerm, statusFilter, setStatusFilter, typeFilter, setTypeFilter 
+    searchTerm, setSearchTerm, statusFilter, setStatusFilter, typeFilter, setTypeFilter,
+    vistaActivas, setVistaActivas // RECIBE LOS PROPS
 }) => {
     
     const getScoreColor = (score) => {
@@ -22,6 +23,30 @@ const CrmTableList = ({
               <StatCard icon={AlertTriangle} label="Críticos" value={stats?.criticos || 0} color="text-red-500" onClick={() => setStatusFilter('Críticos')} active={statusFilter === 'Críticos'} />
               <StatCard icon={FileText} label="F29 Pendientes" value={stats?.f29Pendientes || 0} color="text-amber-500" onClick={() => setStatusFilter('F29 Pendientes')} active={statusFilter === 'F29 Pendientes'} />
               <StatCard icon={CheckCircle2} label="Al Día" value={stats?.alDia || 0} color="text-emerald-500" onClick={() => setStatusFilter('Al Día')} active={statusFilter === 'Al Día'} />
+            </div>
+
+            {/* BOTONES PARA ALTERNAR ACTIVAS / INACTIVAS (LA BASURA) */}
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 w-fit">
+                <button
+                    onClick={() => setVistaActivas(true)}
+                    className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                        vistaActivas 
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                    }`}
+                >
+                    Clientes Activos
+                </button>
+                <button
+                    onClick={() => setVistaActivas(false)}
+                    className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                        !vistaActivas 
+                        ? 'bg-red-600/80 text-white shadow-lg shadow-red-500/20' 
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                    }`}
+                >
+                    Inactivos / Sin Registro
+                </button>
             </div>
 
             {/* BARRA DE BÚSQUEDA Y FILTROS */}
@@ -68,12 +93,10 @@ const CrmTableList = ({
                   </thead>
                   <tbody>
                     {filteredClients.map((client) => {
-                      // TRADUCTOR Mapeado Directo a BD con protección
                       const razonSocial = client.razon_social || client.razonSocial || 'Sin Nombre';
                       const rut = client.rut_encrypted || client.rut || '';
                       const tipoCliente = client.tipo_cliente || client.type || 'Empresa';
                       
-                      // Si viene el UUID del plan pero no el nombre, avisamos que la API no está usando la vista
                       const plan = client.plan || client.plan_nombre || (client.plan_id ? 'FALTA JOIN EN BD' : 'FREE');
                       
                       const score = client.score ?? 100;
@@ -124,12 +147,12 @@ const CrmTableList = ({
                                         <AlertTriangle size={10} /> {importante}
                                     </span>
                                 )}
-                                {whatsapp && whatsapp !== 'SIN_DATO' ? (
+                                {whatsapp && whatsapp !== 'SIN_DATO' && whatsapp !== 'Sin Registro' ? (
                                     <a href={`https://wa.me/${whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors" onClick={(e) => e.stopPropagation()}>
                                         <MessageSquare size={12} /> {whatsapp}
                                     </a>
                                 ) : (
-                                    <span className="text-[10px] text-gray-500 truncate max-w-[150px]">{correo}</span>
+                                    <span className="text-[10px] text-gray-500 truncate max-w-[150px]">{correo || 'Sin correo'}</span>
                                 )}
                              </div>
                           </td>
@@ -158,7 +181,7 @@ const CrmTableList = ({
                     {filteredClients.length === 0 && (
                       <tr>
                         <td colSpan="5" className="p-8 text-center text-gray-500 text-sm">
-                          No se encontraron clientes con esos filtros.
+                          {vistaActivas ? 'No se encontraron clientes activos.' : 'No tienes empresas inactivas o sin registro.'}
                         </td>
                       </tr>
                     )}
