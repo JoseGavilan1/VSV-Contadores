@@ -1,47 +1,81 @@
 import { pool } from '../database/db.js';
-// Importamos la herramienta de desencriptación si es que la necesitas 
-// (aunque en tu esquema rut_cliente parece ser texto plano)
-import { decrypt } from '../utils/crypto.js';
 
-export const consultarHistorialEmpresa = async (req, res) => {
+// ========================================================
+// 1. CONTROLADOR DE VENTAS (Historial)
+// ========================================================
+export const consultarHistorialBunkerController = async (req, res) => {
     try {
-        // Obtenemos el ID desde la consulta (query string)
         const { empresa_id } = req.query;
-
         if (!empresa_id) {
             return res.status(400).json({ ok: false, error: "Falta el identificador de la empresa." });
         }
 
-        // Ejecutamos la consulta SQL uniendo la tabla de documentos con la de empresa
-        const query = `
-            SELECT 
-                d.id,
-                d.folio,
-                d.tipo_dte,
-                d.monto_neto,
-                d.fecha_emision,
-                d.url_pdf,
-                d.rut_cliente,
-                e.razon_social
-            FROM documentos_emitidos d
-            JOIN empresa e ON d.empresa_id = e.id
-            WHERE d.empresa_id = $1
-            ORDER BY d.fecha_emision DESC;
-        `;
+        let query = "";
+        let values = [];
 
-        const result = await pool.query(query, [empresa_id]);
+        // Si piden "ALL", traemos TODAS las ventas de TODAS las empresas
+        if (empresa_id === 'ALL') {
+            query = `
+                SELECT d.id, d.folio, d.tipo_dte, d.monto_neto, d.fecha_emision, d.url_pdf, d.rut_cliente, e.razon_social
+                FROM documentos_emitidos d
+                JOIN empresa e ON d.empresa_id = e.id
+                ORDER BY d.fecha_emision DESC;
+            `;
+        } else {
+            // Comportamiento normal: solo la empresa seleccionada
+            query = `
+                SELECT d.id, d.folio, d.tipo_dte, d.monto_neto, d.fecha_emision, d.url_pdf, d.rut_cliente, e.razon_social
+                FROM documentos_emitidos d
+                JOIN empresa e ON d.empresa_id = e.id
+                WHERE d.empresa_id = $1
+                ORDER BY d.fecha_emision DESC;
+            `;
+            values = [empresa_id];
+        }
 
-        // Retornamos el arreglo de documentos
-        return res.json({
-            ok: true,
-            documentos: result.rows
-        });
-
+        const result = await pool.query(query, values);
+        return res.json({ ok: true, documentos: result.rows });
     } catch (error) {
-        console.error('❌ Error en dteConsulta.controller:', error.message);
-        return res.status(500).json({
-            ok: false,
-            error: 'No se pudo conectar con la bóveda de documentos.'
-        });
+        console.error('❌ Error Ventas:', error.message);
+        return res.status(500).json({ ok: false, error: 'Error al obtener ventas.' });
+    }
+};
+
+// ========================================================
+// 2. CONTROLADOR DE COMPRAS (Recibidos)
+// ========================================================
+export const consultarComprasBunkerController = async (req, res) => {
+    try {
+        const { empresa_id } = req.query;
+        if (!empresa_id) {
+            return res.status(400).json({ ok: false, error: "Falta el identificador de la empresa." });
+        }
+
+        let query = "";
+        let values = [];
+
+        // Si piden "ALL", traemos TODAS las compras de TODAS las empresas
+        if (empresa_id === 'ALL') {
+            query = `
+                SELECT id, rut_proveedor, razon_social_proveedor, tipo_dte, folio, monto_neto, monto_iva, monto_total, fecha_emision, url_pdf
+                FROM documentos_recibidos
+                ORDER BY fecha_emision DESC;
+            `;
+        } else {
+            // Comportamiento normal
+            query = `
+                SELECT id, rut_proveedor, razon_social_proveedor, tipo_dte, folio, monto_neto, monto_iva, monto_total, fecha_emision, url_pdf
+                FROM documentos_recibidos
+                WHERE empresa_id = $1
+                ORDER BY fecha_emision DESC;
+            `;
+            values = [empresa_id];
+        }
+
+        const result = await pool.query(query, values);
+        return res.json({ ok: true, documentos: result.rows });
+    } catch (error) {
+        console.error('❌ Error Compras:', error.message);
+        return res.status(500).json({ ok: false, error: 'Error al obtener compras.' });
     }
 };
