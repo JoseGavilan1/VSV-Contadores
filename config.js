@@ -1,4 +1,4 @@
-const IP_PUBLICA = 'localhost';
+const IP_PUBLICA = 'https://bcfckukvgojnfmmwoqpf.supabase.co';
 
 export const API_BASE_URL = `http://${IP_PUBLICA}:4000/api`;
 export const FRONTEND_URL = `http://${IP_PUBLICA}:3000`;
