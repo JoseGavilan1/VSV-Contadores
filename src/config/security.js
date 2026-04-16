@@ -7,7 +7,8 @@ export const corsOptions = {
     const allowed = [
       FRONTEND_URL, 
       'http://localhost:3000', 
-      'http://localhost:5173'
+      'http://localhost:5173',
+      'https://vsv-contadores-five.vercel.app'
     ]
 
     if (!origin || allowed.some(a => origin === a || (a && origin.startsWith(a)))) {
