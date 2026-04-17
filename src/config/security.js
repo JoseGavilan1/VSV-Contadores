@@ -8,7 +8,8 @@ export const corsOptions = {
       FRONTEND_URL, 
       'http://localhost:3000', 
       'http://localhost:5173',
-      'https://vsv-contadores-five.vercel.app'
+      'https://vsv-contadores-five.vercel.app',
+      'https://vsv-contadores-production.up.railway.app'
     ]
 
     if (!origin || allowed.some(a => origin === a || (a && origin.startsWith(a)))) {
